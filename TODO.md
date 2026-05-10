@@ -15,8 +15,15 @@
 - [x] Start screen/menu
 - [x] Death explosion animation
 - [x] Core bugs fixed (B1-B8)
+## 🔊 Sound (in progress)
+- [x] Sound effects (place, explosion, power-up, death)
+  - [x] Bomb place (short beep)
+  - [x] Explosion (crash/boom)
+  - [x] Power-up pickup (ding)
+  - [x] Enemy death (pop)
+  - [x] Player death (low thud)
+
 ## 🎨 Extras (later)
-- [ ] Sound effects (place, explosion, power-up, death)
 - [ ] Animated sprites instead of emoji/colors
 - [ ] More enemy types (chase vs random)
 - [ ] Multiple levels / procedurally generated maps

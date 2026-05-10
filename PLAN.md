@@ -117,8 +117,17 @@ input.update()
 ### [x] Step 5: Full update loop (bombs, explosions, enemies, powerups, win check)
 ### [x] Step 6: Render (map → powerups → bombs → explosions → player → enemies → state text)
 ### [x] Core bugs all fixed (B1-B8)
-### [ ] **Next: HUD overlay** — score, fire range, bomb count, enemies alive
-### [ ] **Then:** start screen/menu, sounds, polish
+### [x] HUD overlay — score, fire range, bomb count, enemies alive
+### [x] Start screen/menu
+### [x] Death explosion animation
+### [x] High score (localStorage)
+### [x] **Sound effects** — Web Audio API, no assets needed ✅
+  - Bomb place (short beep) ✅
+  - Explosion (low boom) ✅
+  - Power-up pickup (ascending ding) ✅
+  - Enemy death (quick pop) ✅
+  - Player death (deep thud) ✅
+### [ ] **Next:** animated sprites or particle effects for explosions
 
 ---
 

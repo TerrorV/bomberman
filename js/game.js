@@ -20,6 +20,9 @@ class Game {
   }
 
   start() {
+    // Init audio on first user interaction
+    soundFX.init();
+
     // Generate map
     this.mapSystem = MapSystem.create(CONFIG);
 
@@ -253,6 +256,7 @@ class Game {
       const bombData = this.player.placeBomb();
       if (bombData) {
         this.bombs.push(new Bomb(bombData.gridX, bombData.gridY, CONFIG));
+        soundFX.place();
         this.bombCooldown = 0.15; // 150ms cooldown between bombs
       }
     }
@@ -269,6 +273,7 @@ class Game {
     });
 
     // 4. Process explosions - destroy blocks and spawn powerups
+    soundFX.explosion();
     const powerupCells = [];
     for (const exp of newExplosions) {
       for (const cell of exp.fireCells) {
@@ -299,6 +304,7 @@ class Game {
           if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {
             enemy.alive = false;
             this.score += 100;
+            soundFX.kill();
           }
         }
       }
@@ -310,6 +316,7 @@ class Game {
       enemy.update(dt, this.mapSystem);
       if (enemy.collidesWithPlayer(this.player, CONFIG)) {
         this.player.alive = false;
+        soundFX.death();
         // Spawn death explosion at player position
         const deathFire = this._generateDeathExplosion(this.player.gridX, this.player.gridY);
         this.explosions.push(new Explosion(deathFire, CONFIG));
@@ -324,6 +331,7 @@ class Game {
       pu.update(dt);
       if (pu.collidesWith(this.player.x, this.player.y, CONFIG)) {
         this.player.applyPowerup(pu.type);
+        soundFX.powerUp();
         this.powerups.splice(i, 1);
       }
     }
