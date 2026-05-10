@@ -1,0 +1,208 @@
+// game.js - Main game loop ⚡
+
+class Game {
+  constructor(canvas) {
+    this.ctx = canvas.getContext('2d');
+    this.input = new Input();
+
+    // state
+    this.mapSystem = null;
+    this.player = null;
+    this.enemies = [];
+    this.bombs = [];
+    this.explosions = [];
+    this.powerups = [];
+    this.gameState = 'idle';
+    this.score = 0;
+  }
+
+  start() {
+    // Generate map
+    this.mapSystem = MapSystem.create(CONFIG);
+
+    // Reset player
+    this.player = new Player(CONFIG);
+
+    // Reset score and state
+    this.score = 0;
+    this.gameState = 'playing';
+
+    // Spawn enemies
+    this.enemies = CONFIG.ENEMY_SPAWNS.map(spawn => new Enemy(CONFIG, spawn.x, spawn.y));
+
+    // Clear arrays
+    this.bombs = [];
+    this.explosions = [];
+    this.powerups = [];
+  }
+
+  gameOver() {
+    this.gameState = 'gameover';
+  }
+
+  win() {
+    this.gameState = 'win';
+  }
+
+  restart() {
+    this.start();
+  }
+
+  _getGridOffset() {
+    const cs = CONFIG.CELL_SIZE;
+    const canvas = this.ctx.canvas;
+    return {
+      cx: (canvas.width - cs * CONFIG.COLS) / 2,
+      cy: (canvas.height - cs * CONFIG.ROWS) / 2,
+      cs,
+      canvas,
+    };
+  }
+
+  render() {
+    const ctx = this.ctx;
+    const canvas = ctx.canvas;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const { cs, cx, cy } = this._getGridOffset();
+
+    // Map
+    this.mapSystem.render(ctx, cx, cy);
+
+    // Powerups
+    this.powerups.forEach(p => p.render(ctx, cx, cy, CONFIG));
+
+    // Bombs
+    this.bombs.forEach(b => b.render(ctx, cx, cy, CONFIG));
+
+    // Explosions
+    this.explosions.forEach(e => e.render(ctx, cx, cy, CONFIG));
+
+    // Player
+    this.player.render(ctx, cx, cy);
+
+    // Enemies
+    this.enemies.forEach(e => e.render(ctx, cx, cy, CONFIG));
+
+    // Game state text
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px Segoe UI, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (this.gameState === 'gameover') {
+      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+    } else if (this.gameState === 'win') {
+      ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2);
+    }
+  }
+
+  update(dt) {
+    const { playing, gameover, win } = {
+      playing: 'playing',
+      gameover: 'gameover',
+      win: 'win'
+    };
+
+    if (this.gameState === playing) {
+      this._updatePlaying(dt);
+    }
+
+    this.input.update();
+  }
+
+  _updatePlaying(dt) {
+    const cs = CONFIG.CELL_SIZE;
+    const cx = (canvas.width - cs * CONFIG.COLS) / 2;
+    const cy = (canvas.height - cs * CONFIG.ROWS) / 2;
+
+    // 1. Player movement
+    const dir = this.input.moveDir;
+    if (dir.dx !== 0 || dir.dy !== 0) {
+      this.player.move(dir.dx, dir.dy, this.mapSystem);
+    }
+
+    // 2. Bomb placement
+    if (this.input.isPressed('Space')) {
+      const bombData = this.player.placeBomb();
+      if (bombData) {
+        this.bombs.push(new Bomb(bombData.gridX, bombData.gridY, CONFIG));
+      }
+    }
+
+    // 3. Update bombs
+    const newExplosions = [];
+    this.bombs = this.bombs.filter(bomb => {
+      if (bomb.update(dt)) {
+        const fireCells = bomb.explode(CONFIG);
+        newExplosions.push(new Explosion(fireCells, CONFIG));
+        return false;
+      }
+      return true;
+    });
+    this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
+
+    // 5. Update explosions
+    this.explosions = this.explosions.filter(exp => exp.update(dt));
+
+    // 6. Update enemies
+    for (const enemy of this.enemies) {
+      enemy.update(dt, this.mapSystem);
+      if (enemy.collidesWithPlayer(this.player, CONFIG)) {
+        this.gameState = 'gameover';
+      }
+    }
+
+    // 7. Check powerup pickup
+    for (let i = this.powerups.length - 1; i >= 0; i--) {
+      const pu = this.powerups[i];
+      pu.update(dt);
+      if (pu.collidesWith(this.player.x, this.player.y, CONFIG)) {
+        this.player.applyPowerup(pu.type);
+        this.powerups.splice(i, 1);
+      }
+    }
+
+    // 8. Check win condition
+    if (this.enemies.every(e => !e.alive)) {
+      this.gameState = 'win';
+    }
+  }
+
+    // 4. Process explosions - destroy blocks and spawn powerups
+    const powerupCells = [];
+    for (const exp of this.explosions) {
+      for (const cell of exp.fireCells) {
+        if (this.mapSystem.isBlock(cell.x, cell.y)) {
+          this.mapSystem.destroyBlock(cell.x, cell.y);
+          // Spawn powerup with chance
+          if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
+            const type = Math.random() < 0.5 ? CONFIG.POWERUP_FIRE : CONFIG.POWERUP_BOMB;
+            powerupCells.push({ x: cell.x, y: cell.y, type });
+          }
+        }
+      }
+    }
+    this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
+}
+
+let game = null;
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+  const dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  game.update(dt);
+  game.render();
+  requestAnimationFrame(gameLoop);
+}
+
+function init() {
+  const canvas = document.getElementById('gameCanvas');
+  game = new Game(canvas);
+  game.start();
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener('DOMContentLoaded', init);
