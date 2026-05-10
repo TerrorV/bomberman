@@ -83,6 +83,34 @@ class Game {
     return false;
   }
 
+  _renderHUD() {
+    const ctx = this.ctx;
+    const canvas = ctx.canvas;
+    if (this.gameState !== 'playing') return;
+
+    const padding = 16;
+    const fontSize = 18;
+    ctx.font = `bold ${fontSize}px Segoe UI, Arial`;
+    ctx.textBaseline = 'top';
+
+    // Score (top-left)
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score: ${this.score}`, padding, padding);
+
+    // Right-side stats
+    ctx.textAlign = 'right';
+    const statsY = padding;
+    let statsX = canvas.width - padding;
+    const gap = 4;
+    const rightLine = [
+      `🔥 ${this.player.fireRange}`,
+      `💣 ${this.player.bombsPlaced}/${this.player.bombCount}`,
+      `👾 ${this.enemies.filter(e => e.alive).length}`,
+    ].join(` `);
+    ctx.fillText(rightLine, statsX, statsY);
+  }
+
   render() {
     const ctx = this.ctx;
     const canvas = ctx.canvas;
@@ -107,6 +135,9 @@ class Game {
 
     // Enemies
     this.enemies.forEach(e => e.render(ctx, cx, cy, CONFIG));
+
+    // HUD
+    this._renderHUD();
 
     // Game state text
     ctx.fillStyle = '#fff';
