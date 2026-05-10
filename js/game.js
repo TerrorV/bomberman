@@ -140,7 +140,27 @@ class Game {
       }
       return true;
     });
-    this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
+
+    // 4. Process explosions - destroy blocks and spawn powerups
+    const powerupCells = [];
+    for (const exp of newExplosions) {
+      for (const cell of exp.fireCells) {
+        if (this.mapSystem.isBlock(cell.x, cell.y)) {
+          this.mapSystem.destroyBlock(cell.x, cell.y);
+          // Spawn powerup with chance
+          if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
+            const type = Math.random() < 0.5 ? CONFIG.POWERUP_FIRE : CONFIG.POWERUP_BOMB;
+            powerupCells.push({ x: cell.x, y: cell.y, type });
+          }
+        }
+      }
+    }
+    if (powerupCells.length > 0) {
+      this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
+    }
+
+    // Merge new explosions
+    this.explosions.push(...newExplosions);
 
     // 5. Update explosions
     this.explosions = this.explosions.filter(exp => exp.update(dt));
@@ -168,22 +188,6 @@ class Game {
       this.gameState = 'win';
     }
   }
-
-    // 4. Process explosions - destroy blocks and spawn powerups
-    const powerupCells = [];
-    for (const exp of this.explosions) {
-      for (const cell of exp.fireCells) {
-        if (this.mapSystem.isBlock(cell.x, cell.y)) {
-          this.mapSystem.destroyBlock(cell.x, cell.y);
-          // Spawn powerup with chance
-          if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
-            const type = Math.random() < 0.5 ? CONFIG.POWERUP_FIRE : CONFIG.POWERUP_BOMB;
-            powerupCells.push({ x: cell.x, y: cell.y, type });
-          }
-        }
-      }
-    }
-    this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
 }
 
 let game = null;
