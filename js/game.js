@@ -165,8 +165,21 @@ class Game {
     // 5. Update explosions
     this.explosions = this.explosions.filter(exp => exp.update(dt));
 
+    // 5b. Kill enemies hit by explosions
+    for (const exp of this.explosions) {
+      for (const cell of exp.fireCells) {
+        for (const enemy of this.enemies) {
+          if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {
+            enemy.alive = false;
+            this.score += 100;
+          }
+        }
+      }
+    }
+
     // 6. Update enemies
     for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
       enemy.update(dt, this.mapSystem);
       if (enemy.collidesWithPlayer(this.player, CONFIG)) {
         this.gameState = 'gameover';
