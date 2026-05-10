@@ -16,6 +16,7 @@ class Game {
     this.score = 0;
     this.bombCooldown = 0;
     this.deathAnimTimer = 0;
+    this.highScore = this._loadHighScore();
   }
 
   start() {
@@ -181,8 +182,10 @@ class Game {
     ctx.textBaseline = 'middle';
     if (this.gameState === 'gameover') {
       ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+      this._renderHighScore();
     } else if (this.gameState === 'win') {
       ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2);
+      this._renderHighScore();
     }
   }
 
@@ -224,6 +227,7 @@ class Game {
 
     // Restart on R after game ends
     if ((this.gameState === state.gameover || this.gameState === state.win) && this.input.isPressed('r')) {
+      this._checkHighScore();
       this.restart();
       this.gameState = state.playing;
     }
@@ -339,6 +343,35 @@ class Game {
       }
     }
     return fireCells;
+  }
+
+  _loadHighScore() {
+    try {
+      return parseInt(localStorage.getItem('bomberman_highscore'), 10) || 0;
+    } catch { return 0; }
+  }
+
+  _saveHighScore() {
+    try {
+      localStorage.setItem('bomberman_highscore', String(this.highScore));
+    } catch {}
+  }
+
+  _checkHighScore() {
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      this._saveHighScore();
+    }
+  }
+
+  _renderHighScore() {
+    const ctx = this.ctx;
+    const canvas = ctx.canvas;
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 16px Segoe UI, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`High Score: ${this.highScore}`, canvas.width / 2, canvas.height - 12);
   }
 }
 

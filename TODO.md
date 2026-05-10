@@ -12,8 +12,9 @@
 - [x] Win condition (kill all enemies)
 - [x] Game states (play, game over, win)
 - [x] HUD overlay (score, fire range, bomb count, enemies alive)
+- [x] Start screen/menu
+- [x] Death explosion animation
 - [x] Core bugs fixed (B1-B8)
-
 ## 🎨 Extras (later)
 - [ ] Sound effects (place, explosion, power-up, death)
 - [ ] Animated sprites instead of emoji/colors
@@ -23,8 +24,6 @@
 - [ ] Lives system
 - [ ] Speed boost power-up
 - [ ] Hard wall (indestructible) placement
-- [ ] Score tracking
-- [ ] Mobile touch controls
 - [ ] High score in localStorage
-- [ ] Start screen / menu
 - [ ] Particle effects for explosions
+- [ ] Mobile touch controls
