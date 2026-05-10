@@ -12,7 +12,7 @@ class Game {
     this.bombs = [];
     this.explosions = [];
     this.powerups = [];
-    this.gameState = 'idle';
+    this.gameState = 'start';
     this.score = 0;
     this.bombCooldown = 0;
   }
@@ -111,6 +111,35 @@ class Game {
     ctx.fillText(rightLine, statsX, statsY);
   }
 
+  _renderStartScreen() {
+    const ctx = this.ctx;
+    const canvas = ctx.canvas;
+
+    // Dark overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Title
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.font = 'bold 64px Segoe UI, Arial';
+    ctx.fillText('BOMBERMAN', canvas.width / 2, canvas.height / 2 - 80);
+
+    // Blinking prompt
+    if (Math.floor(Date.now() / 500) % 2) {
+      ctx.font = 'bold 24px Segoe UI, Arial';
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillText('Press ENTER to play!', canvas.width / 2, canvas.height / 2 + 20);
+    }
+
+    // Controls
+    ctx.font = '18px Segoe UI, Arial';
+    ctx.fillStyle = '#bbb';
+    ctx.fillText('WASD / Arrows — Move  |  Space — Bomb  |  R — Restart', canvas.width / 2, canvas.height / 2 + 80);
+  }
+
   render() {
     const ctx = this.ctx;
     const canvas = ctx.canvas;
@@ -139,6 +168,11 @@ class Game {
     // HUD
     this._renderHUD();
 
+    // Start screen
+    if (this.gameState === 'start') {
+      this._renderStartScreen();
+    }
+
     // Game state text
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 36px Segoe UI, Arial';
@@ -152,14 +186,31 @@ class Game {
   }
 
   update(dt) {
-    const { playing, gameover, win } = {
+    const state = {
       playing: 'playing',
       gameover: 'gameover',
-      win: 'win'
+      win: 'win',
+      start: 'start',
     };
 
-    if (this.gameState === playing) {
+    // Start screen: Enter to begin
+    if (this.gameState === state.start) {
+      this.input.update();
+      if (this.input.isPressed('Enter')) {
+        this.start();
+        this.gameState = state.playing;
+      }
+      return;
+    }
+
+    if (this.gameState === state.playing) {
       this._updatePlaying(dt);
+    }
+
+    // Restart on R after game ends
+    if ((this.gameState === state.gameover || this.gameState === state.win) && this.input.isPressed('r')) {
+      this.restart();
+      this.gameState = state.playing;
     }
 
     this.input.update();
