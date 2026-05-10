@@ -15,26 +15,31 @@ Writing all the glue code in one shot causes tool failures (context/token issues
 
 ### 🔴 Crash Bugs (must fix before playtest)
 
-**B1. `canvas` undefined in `_updatePlaying()`**
-- **Where:** `_updatePlaying()` — `const cx = (canvas.width - ...` line
-- **What:** Bare `canvas.width` / `canvas.height` — no `canvas` variable in scope
-- **Fix:** Use `this.ctx.canvas.width` / `this.ctx.canvas.height`
+**B1. ~~`canvas` undefined in `_updatePlaying()`~~ ✅ FIXED**
+- **Status:** ✅ Fixed — commit `6f711ee`
+- **Was:** Bare `canvas.width` / `canvas.height` — no `canvas` variable in scope
+- **Fixed:** Added `const canvas = this.ctx.canvas;` before the calculations
+- **Location in game.js:** `_updatePlaying()`, lines ~`const cx = (canvas.width - ...`
 
-**B2. `powerupCells` used before declaration — ReferenceError**
-- **Where:** Inside `_updatePlaying()` → bomb filter callback
-- **What:** `this.powerups.push(...powerupCells.map(...))` references `powerupCells` before it's declared later in the function
-- **Fix:** Move block destruction/powerup spawn logic before the bomb filter, or collect into a local array
+**B2. ~~`powerupCells` used before declaration~~ ✅ FIXED**
+- **Status:** ✅ Fixed — commit `2dc42ec`
+- **Was:** `this.powerups.push(...powerupCells.map(...))` inside the bomb filter, before `powerupCells` was declared
+- **Fixed:** Moved block destruction/powerup spawn into a proper step 4 inside `_updatePlaying()`, declared `powerupCells` before use
+- **Location in game.js:** `_updatePlaying()`, lines ~130-160
 
-**B3. Block destruction code floating outside the update loop**
-- **Where:** After `_updatePlaying` closing brace, before `gameLoop`
-- **What:** The block destruction + powerup spawn `for` loop is orphaned — outside any function body, won't execute
-- **Fix:** Move it inside `_updatePlaying`, in the correct order (before win check)
+**B3. ~~Block destruction code floating outside the update loop~~ ✅ FIXED**
+- **Status:** ✅ Fixed — commit `2dc42ec`
+- **Was:** Orphan `for` loop between `_updatePlaying()` closing brace and `gameLoop()` — outside any function
+- **Fixed:** Moved into `_updatePlaying()` as step 4, in correct order (after bombs, before explosion update)
+- **Location in game.js:** `_updatePlaying()`, step 4 block
 
 ### 🟡 Gameplay Logic Gaps
 
-**B4. Enemies never die — no kill mechanic**
-- **What:** Win condition checks `enemies.every(e => !e.alive)` but nothing ever sets `alive = false`
-- **Fix:** Add explosion→enemy collision; set `enemy.alive = false` when hit. Consider: fire kills? score on kill? invincibility frames?
+**B4. ~~Enemies never die — no kill mechanic~~ ✅ FIXED**
+- **Status:** ✅ Fixed — commit `d56dee9`
+- **Was:** Win condition checked `enemies.every(e => !e.alive)` but nothing ever set `alive = false`
+- **Fixed:** Added step 5b — after explosion update, check each enemy against explosion fire cells; set `enemy.alive = false` and add `100` score per kill
+- **Location in game.js:** `_updatePlaying()`, step 5b block, lines ~167-176
 
 **B5. Player can walk through bombs**
 - **What:** Bombs aren't in the collision list in `Player.move()` → `checkWalk()`

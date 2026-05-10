@@ -44,7 +44,7 @@ class Player {
     return null;
   }
 
-  move(dx, dy, map) {
+  move(dx, dy, map, isBlocked) {
     if (!this.alive) return;
     const speed = this.config.PLAYER_SPEED;
     const newX = this.x + dx * speed;
@@ -63,7 +63,8 @@ class Player {
       const cellLeft = Math.floor(left / cs);
       const cellRight = Math.floor(right / cs);
 
-      const blockedX = this.checkWalk(cellLeft, cellTop, map) ||
+      const blockedX = (isBlocked && (isBlocked(cellLeft, cellTop) || isBlocked(cellLeft, cellBottom) || isBlocked(cellRight, cellTop) || isBlocked(cellRight, cellBottom))) ||
+                       this.checkWalk(cellLeft, cellTop, map) ||
                        this.checkWalk(cellLeft, cellBottom, map) ||
                        this.checkWalk(cellRight, cellTop, map) ||
                        this.checkWalk(cellRight, cellBottom, map);
@@ -81,7 +82,8 @@ class Player {
       const cellTop = Math.floor(top / cs);
       const cellBottom = Math.floor(bottom / cs);
 
-      const blockedY = this.checkWalk(cellLeft, cellTop, map) ||
+      const blockedY = (isBlocked && (isBlocked(cellLeft, cellTop) || isBlocked(cellLeft, cellBottom) || isBlocked(cellRight, cellTop) || isBlocked(cellRight, cellBottom))) ||
+                       this.checkWalk(cellLeft, cellTop, map) ||
                        this.checkWalk(cellLeft, cellBottom, map) ||
                        this.checkWalk(cellRight, cellTop, map) ||
                        this.checkWalk(cellRight, cellBottom, map);

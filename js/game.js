@@ -59,6 +59,28 @@ class Game {
     };
   }
 
+  // B5+B6: returns true if a grid cell blocks the player
+  _isBlocked(gx, gy) {
+    // Check bombs — can't walk into a bomb cell
+    for (const bomb of this.bombs) {
+      if (bomb.gridX === gx && bomb.gridY === gy) {
+        // Classic Bomberman: player can walk out of their own bomb but not back in
+        // If player's current cell IS this bomb cell, allow walk (they're stepping out)
+        if (this.player.gridX === gx && this.player.gridY === gy) {
+          return false; // they're standing here, let them leave
+        }
+        return true;
+      }
+    }
+    // Check alive enemies
+    for (const enemy of this.enemies) {
+      if (enemy.alive && enemy.gridX === gx && enemy.gridY === gy) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   render() {
     const ctx = this.ctx;
     const canvas = ctx.canvas;
@@ -119,7 +141,7 @@ class Game {
     // 1. Player movement
     const dir = this.input.moveDir;
     if (dir.dx !== 0 || dir.dy !== 0) {
-      this.player.move(dir.dx, dir.dy, this.mapSystem);
+      this.player.move(dir.dx, dir.dy, this.mapSystem, (gx, gy) => this._isBlocked(gx, gy));
     }
 
     // 2. Bomb placement
