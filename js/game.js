@@ -14,6 +14,7 @@ class Game {
     this.powerups = [];
     this.gameState = 'idle';
     this.score = 0;
+    this.bombCooldown = 0;
   }
 
   start() {
@@ -25,6 +26,7 @@ class Game {
 
     // Reset score and state
     this.score = 0;
+    this.bombCooldown = 0;
     this.gameState = 'playing';
 
     // Spawn enemies
@@ -144,11 +146,13 @@ class Game {
       this.player.move(dir.dx, dir.dy, this.mapSystem, (gx, gy) => this._isBlocked(gx, gy));
     }
 
-    // 2. Bomb placement
-    if (this.input.isPressed('Space')) {
+    // 2. Bomb placement (with cooldown to prevent spam)
+    this.bombCooldown -= dt;
+    if (this.bombCooldown <= 0 && this.input.isDown('Space')) {
       const bombData = this.player.placeBomb();
       if (bombData) {
         this.bombs.push(new Bomb(bombData.gridX, bombData.gridY, CONFIG));
+        this.bombCooldown = 0.15; // 150ms cooldown between bombs
       }
     }
 
