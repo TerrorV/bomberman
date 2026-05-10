@@ -15,6 +15,7 @@ class Game {
     this.gameState = 'start';
     this.score = 0;
     this.bombCooldown = 0;
+    this.deathAnimTimer = 0;
   }
 
   start() {
@@ -191,6 +192,7 @@ class Game {
       gameover: 'gameover',
       win: 'win',
       start: 'start',
+      dying: 'dying',
     };
 
     // Start screen: Enter to begin
@@ -205,6 +207,19 @@ class Game {
 
     if (this.gameState === state.playing) {
       this._updatePlaying(dt);
+    }
+
+    // Death animation
+    if (this.gameState === state.dying) {
+      this.deathAnimTimer -= dt;
+      // Update explosions during death anim
+      this.explosions = this.explosions.filter(e => e.update(dt));
+      // Draw death explosions
+      const { cs, cx, cy } = this._getGridOffset();
+      this.explosions.forEach(e => e.render(this.ctx, cx, cy, CONFIG));
+      if (this.deathAnimTimer <= 0) {
+        this.gameState = state.gameover;
+      }
     }
 
     // Restart on R after game ends
@@ -290,7 +305,12 @@ class Game {
       if (!enemy.alive) continue;
       enemy.update(dt, this.mapSystem);
       if (enemy.collidesWithPlayer(this.player, CONFIG)) {
-        this.gameState = 'gameover';
+        this.player.alive = false;
+        // Spawn death explosion at player position
+        const deathFire = this._generateDeathExplosion(this.player.gridX, this.player.gridY);
+        this.explosions.push(new Explosion(deathFire, CONFIG));
+        this.deathAnimTimer = 0.5;
+        this.gameState = 'dying';
       }
     }
 
@@ -308,6 +328,17 @@ class Game {
     if (this.enemies.every(e => !e.alive)) {
       this.gameState = 'win';
     }
+  }
+
+  _generateDeathExplosion(gx, gy) {
+    // 3x3 explosion centered on player
+    const fireCells = [];
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        fireCells.push({ x: gx + dx, y: gy + dy });
+      }
+    }
+    return fireCells;
   }
 }
 
