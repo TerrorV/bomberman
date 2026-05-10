@@ -112,6 +112,7 @@ class Game {
 
   _updatePlaying(dt) {
     const cs = CONFIG.CELL_SIZE;
+    const canvas = this.ctx.canvas;
     const cx = (canvas.width - cs * CONFIG.COLS) / 2;
     const cy = (canvas.height - cs * CONFIG.ROWS) / 2;
 
