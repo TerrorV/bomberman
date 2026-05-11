@@ -4,6 +4,7 @@ const CONFIG = {
   ROWS: 13,
   CELL_SIZE: 48,
   PLAYER_SPEED: 3,
+  PLAYER_SPEED_BOOST: 1.5,
   ENEMY_SPEED: 1.5,
   ENEMY_COUNT: 4,
   BOMB_COUNT: 2,
@@ -36,6 +37,7 @@ const CONFIG = {
   POWERUP_SPAWN: { chance: 0.3 },
   POWERUP_FIRE: 'fire',
   POWERUP_BOMB: 'bomb',
+  POWERUP_SPEED: 'speed',
   TILE: { EMPTY: 0, WALL: 1, BLOCK: 2 },
   COLORS: {
     WALL: '#3a3a3a',
@@ -51,5 +53,6 @@ const CONFIG = {
     FIRE_CORE: '#f1c40f',
     POWERUP_FIRE: '#ff6348',
     POWERUP_BOMB: '#3742fa',
+    POWERUP_SPEED: '#00d2d3',
   },
 };

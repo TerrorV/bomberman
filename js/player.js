@@ -16,6 +16,7 @@ class Player {
     this.bombsPlaced = 0;
     this.alive = true;
     this.invincible = 0;
+    this.speedBoostTimer = 0;
   }
 
   canPlaceBomb() {
@@ -41,12 +42,23 @@ class Player {
       this.bombCount = Math.min(this.bombCount + 1, this.config.BOMB_COUNT_MAX);
       return this.bombCount;
     }
+    if (type === this.config.POWERUP_SPEED) {
+      this.speedBoostTimer = 20;
+      return 'speed';
+    }
     return null;
+  }
+
+  getEffectiveSpeed() {
+    if (this.speedBoostTimer > 0) {
+      return this.config.PLAYER_SPEED * this.config.PLAYER_SPEED_BOOST;
+    }
+    return this.config.PLAYER_SPEED;
   }
 
   move(dx, dy, map, isBlocked) {
     if (!this.alive) return;
-    const speed = this.config.PLAYER_SPEED;
+    const speed = this.getEffectiveSpeed();
     const newX = this.x + dx * speed;
     const newY = this.y + dy * speed;
     const cs = this.config.CELL_SIZE;
@@ -110,6 +122,20 @@ class Player {
     const cx = offsetX + this.x + cs / 2;
     const cy = offsetY + this.y + cs / 2;
     const r = cs * 0.4;
+
+    // Speed boost glow
+    if (this.speedBoostTimer > 0) {
+      const pulse = Math.sin(this.speedBoostTimer * 8) * 0.3 + 0.5;
+      ctx.fillStyle = `rgba(0, 210, 211, ${pulse * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 2, r + 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(0, 210, 211, ${pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 2, r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     // Body
     ctx.beginPath();

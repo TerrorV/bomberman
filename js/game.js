@@ -17,6 +17,7 @@ class Game {
     this.bombCooldown = 0;
     this.deathAnimTimer = 0;
     this.highScore = this._loadHighScore();
+    this.particles = new ParticleSystem();
   }
 
   start() {
@@ -111,8 +112,9 @@ class Game {
     const rightLine = [
       `🔥 ${this.player.fireRange}`,
       `💣 ${this.player.bombsPlaced}/${this.player.bombCount}`,
-      `👾 ${this.enemies.filter(e => e.alive).length}`,
-    ].join(` `);
+      this.player.speedBoostTimer > 0 ? `⚡ ${Math.ceil(this.player.speedBoostTimer)}s` : `👾 ${this.enemies.filter(e => e.alive).length}`,
+      this.player.speedBoostTimer > 0 ? `👾 ${this.enemies.filter(e => e.alive).length}` : '',
+    ].filter(Boolean).join(` `);
     ctx.fillText(rightLine, statsX, statsY);
   }
 
@@ -164,6 +166,11 @@ class Game {
     // Explosions
     this.explosions.forEach(e => e.render(ctx, cx, cy, CONFIG));
 
+    // Particles
+    if (this.gameState === 'playing' || this.gameState === 'dying') {
+      this.particles.render(ctx, cs);
+    }
+
     // Player
     this.player.render(ctx, cx, cy);
 
@@ -214,6 +221,9 @@ class Game {
     if (this.gameState === state.playing) {
       this._updatePlaying(dt);
     }
+
+    // Update particles every frame
+    this.particles.update(dt);
 
     // Death animation
     if (this.gameState === state.dying) {
@@ -267,6 +277,10 @@ class Game {
       if (bomb.update(dt)) {
         const fireCells = bomb.explode(CONFIG);
         newExplosions.push(new Explosion(fireCells, CONFIG));
+        // Spawn particles for each fire cell
+        for (const cell of fireCells) {
+          this.particles.burstAt(cell.x, cell.y, 6, 'radial');
+        }
         return false;
       }
       return true;
@@ -281,7 +295,8 @@ class Game {
           this.mapSystem.destroyBlock(cell.x, cell.y);
           // Spawn powerup with chance
           if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
-            const type = Math.random() < 0.5 ? CONFIG.POWERUP_FIRE : CONFIG.POWERUP_BOMB;
+            const types = [CONFIG.POWERUP_FIRE, CONFIG.POWERUP_BOMB, CONFIG.POWERUP_SPEED];
+            const type = types[Math.floor(Math.random() * types.length)];
             powerupCells.push({ x: cell.x, y: cell.y, type });
           }
         }
@@ -325,7 +340,10 @@ class Game {
       }
     }
 
-    // 7. Check powerup pickup
+    // 7. Check powerup pickup + speed timer countdown
+    if (this.player.speedBoostTimer > 0) {
+      this.player.speedBoostTimer -= dt;
+    }
     for (let i = this.powerups.length - 1; i >= 0; i--) {
       const pu = this.powerups[i];
       pu.update(dt);

@@ -36,7 +36,13 @@ class PowerUp {
     ctx.font = `bold ${r}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.type === config.POWERUP_FIRE ? '🔥' : '💣', cx, cy);
+    if (this.type === config.POWERUP_FIRE) {
+      ctx.fillText('🔥', cx, cy);
+    } else if (this.type === config.POWERUP_BOMB) {
+      ctx.fillText('💣', cx, cy);
+    } else {
+      ctx.fillText('⚡', cx, cy);
+    }
   }
 
   collidesWith(x, y, config) {
