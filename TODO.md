@@ -17,19 +17,13 @@
 - [x] Core bugs fixed (B1-B8)
 ## 🔊 Sound (in progress)
 - [x] Sound effects (place, explosion, power-up, death)
-  - [x] Bomb place (short beep)
-  - [x] Explosion (crash/boom)
-  - [x] Power-up pickup (ding)
-  - [x] Enemy death (pop)
-  - [x] Player death (low thud)
 
 ## 🎨 Extras (later)
-- [ ] Animated sprites instead of emoji/colors
 - [ ] More enemy types (chase vs random)
 - [ ] Multiple levels / procedurally generated maps
 - [ ] Countdown timer (lose if time runs out)
 - [ ] Lives system
-- [ ] Speed boost power-up
+- [x] Speed boost power-up ⚡ (DONE)
 - [ ] Hard wall (indestructible) placement
 - [ ] High score in localStorage
 - [ ] Particle effects for explosions

@@ -235,6 +235,7 @@ class Game {
       this.explosions.forEach(e => e.render(this.ctx, cx, cy, CONFIG));
       if (this.deathAnimTimer <= 0) {
         this.gameState = state.gameover;
+        this.player.alive = false;
       }
     }
 
@@ -287,9 +288,10 @@ class Game {
     });
 
     // 4. Process explosions - destroy blocks and spawn powerups
-    soundFX.explosion();
     const powerupCells = [];
+    let hasExplosion = false;
     for (const exp of newExplosions) {
+      hasExplosion = true;
       for (const cell of exp.fireCells) {
         if (this.mapSystem.isBlock(cell.x, cell.y)) {
           this.mapSystem.destroyBlock(cell.x, cell.y);
@@ -301,6 +303,10 @@ class Game {
           }
         }
       }
+    }
+    // Play explosion sound once per batch (not per frame)
+    if (hasExplosion) {
+      soundFX.explosion();
     }
     if (powerupCells.length > 0) {
       this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
