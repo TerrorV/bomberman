@@ -20,6 +20,7 @@
 
 ## 🎨 Extras (later)
 - [x] Particle effects wired up (burstAt→burst fix) ✅
+- [x] Explosion outer glow effect ✅
 - [ ] More enemy types (chase vs random)
 - [ ] Multiple levels / procedurally generated maps
 - [ ] Countdown timer (lose if time runs out)
