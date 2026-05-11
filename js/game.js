@@ -280,7 +280,7 @@ class Game {
         newExplosions.push(new Explosion(fireCells, CONFIG));
         // Spawn particles for each fire cell
         for (const cell of fireCells) {
-          this.particles.burstAt(cell.x, cell.y, 6, 'radial');
+          this.particles.burst(cell.x, cell.y, 'radial', 6);
         }
         return false;
       }
