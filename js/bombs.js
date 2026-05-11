@@ -109,6 +109,17 @@ class Explosion {
       const sx = offsetX + cell.x * cs;
       const sy = offsetY + cell.y * cs;
 
+      // Outer glow — pulsing with explosion progress
+      const glowSize = 8 + progress * 6;
+      const glowAlpha = alpha * (1 - progress * 0.7);
+      ctx.save();
+      ctx.shadowBlur = glowSize;
+      ctx.shadowColor = `rgba(255, ${Math.floor(140 - progress * 80)}, 0, ${glowAlpha})`;
+      ctx.globalAlpha = glowAlpha * 0.3;
+      ctx.fillStyle = config.COLORS.FIRE;
+      ctx.fillRect(sx - 4, sy - 4, cs + 8, cs + 8);
+      ctx.restore();
+
       // Outer fire
       ctx.globalAlpha = alpha * 0.8;
       ctx.fillStyle = config.COLORS.FIRE;
