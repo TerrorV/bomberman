@@ -127,7 +127,8 @@ input.update()
   - Power-up pickup (ascending ding) ✅
   - Enemy death (quick pop) ✅
   - Player death (deep thud) ✅
-### [ ] **Next:** animated sprites or particle effects for explosions
+### [x] **Particle effects** — explosion burst particles (fixed burstAt→burst wiring bug) ✅
+### [ ] **Next:** polish — explosion glow effect, sprite-like rendering on player/enemies
 
 ---
 
