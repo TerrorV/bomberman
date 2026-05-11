@@ -13,12 +13,13 @@ class Bomb {
     return this.timer <= 0;
   }
 
-  explode(config) {
+  explode(config, fireRange) {
+    const range = fireRange || config.FIRE_RANGE;
     const result = [];
     const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
 
     for (const [dx, dy] of dirs) {
-      for (let i = 1; i <= config.FIRE_RANGE; i++) {
+      for (let i = 1; i <= range; i++) {
         const x = this.gridX + dx * i;
         const y = this.gridY + dy * i;
         if (x < 0 || y < 0) break;

@@ -276,7 +276,7 @@ class Game {
     const newExplosions = [];
     this.bombs = this.bombs.filter(bomb => {
       if (bomb.update(dt)) {
-        const fireCells = bomb.explode(CONFIG);
+        const fireCells = bomb.explode(CONFIG, this.player.fireRange);
         newExplosions.push(new Explosion(fireCells, CONFIG));
         // Spawn particles for each fire cell
         for (const cell of fireCells) {

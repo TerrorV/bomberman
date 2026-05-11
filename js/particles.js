@@ -44,6 +44,13 @@ class ParticleSystem {
   }
 
   update(dt) { this.list = this.list.filter(p => { p.update(dt); return p.alive(); }); }
+
+  render(ctx, cs) {
+    for (const p of this.list) {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x * cs, p.y * cs, p.size * (p.life / p.maxLife), p.size * (p.life / p.maxLife));
+    }
+  }
 }
 
 const particles = new ParticleSystem();
