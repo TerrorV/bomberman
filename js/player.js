@@ -17,6 +17,11 @@ class Player {
     this.alive = true;
     this.invincible = 0;
     this.speedBoostTimer = 0;
+    this._moveDirX = 0;
+    this._moveDirY = 0;
+    this._animTimer = 0;
+    this._lastMoveDirX = 0;
+    this._lastMoveDirY = 0;
   }
 
   canPlaceBomb() {
@@ -43,7 +48,7 @@ class Player {
       return this.bombCount;
     }
     if (type === this.config.POWERUP_SPEED) {
-      this.speedBoostTimer = 20;
+      this.speedBoostTimer = 5;
       return 'speed';
     }
     return null;
@@ -57,6 +62,10 @@ class Player {
   }
 
   move(dx, dy, map, isBlocked) {
+    this._moveDirX = dx;
+    this._moveDirY = dy;
+    this._lastMoveDirX = dx;
+    this._lastMoveDirY = dy;
     if (!this.alive) return;
     const speed = this.getEffectiveSpeed();
     const newX = this.x + dx * speed;
@@ -146,7 +155,9 @@ class Player {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Eyes
+    // Eyes (track movement direction)
+    const lookDx = this._moveDirX || (this._moveDirY > 0 ? 0 : -0.5);
+    const lookDy = this._moveDirY;
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(cx - 6, cy - 4, 5, 0, Math.PI * 2);
@@ -154,17 +165,19 @@ class Player {
     ctx.fill();
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(cx - 5, cy - 3, 2.5, 0, Math.PI * 2);
-    ctx.arc(cx + 7, cy - 3, 2.5, 0, Math.PI * 2);
+    ctx.arc(cx - 5 + lookDx * 2, cy - 3 + lookDy * 2, 2.5, 0, Math.PI * 2);
+    ctx.arc(cx + 7 + lookDx * 2, cy - 3 + lookDy * 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Feet
+    // Feet (animated when moving)
+    const wasMoving = this._lastMoveDirX !== 0 || this._lastMoveDirY !== 0;
+    const footOffset = wasMoving ? Math.sin(performance.now() * 0.01) * 3 : 0;
     ctx.fillStyle = '#27ae60';
     ctx.beginPath();
-    ctx.ellipse(cx - 8, cy + r + 2, 5, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx - 8, cy + r + 2 - footOffset, 5, 3 + footOffset * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(cx + 8, cy + r + 2, 5, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + 8, cy + r + 2 + footOffset, 5, 3 - footOffset * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 }
