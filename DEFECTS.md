@@ -79,3 +79,15 @@ Recorded 2026-05-12 by Vlad. Do NOT go through the codebase — just track these
 - **Impact:** If an enemy is standing on a tile that just exploded, it gets the score bonus + sound but remains alive and continues walking — effectively immortal as long as it stands in the blast.
 - **Severity:** Medium — gameplay-breaking for combat feel.
 - **Fix:** Run the same enemy kill loop over `newExplosions` as well.
+
+### D9 — Map layout: indestructible vs destructible blocks not distinguished
+- **Issue:** The current map generation places destructible blocks (`BLOCK`) randomly across the grid with no structure. In classic Bomberman, indestructible blocks form corridors and walls (a fixed maze pattern), while destructible blocks fill the gaps randomly.
+- **Impact:** Every game looks the same, no maze-like structure, no strategic layout. No sense of corridors vs open spaces.
+- **Severity:** High — core design flaw. The map should have a fixed skeleton of indestructible walls forming corridors, with destructible blocks randomly filling some of the empty spaces.
+- **Fix:** Restructure map generation: 1) Place indestructible walls in a repeating grid pattern (e.g. every other cell forms a maze skeleton). 2) Fill remaining empty cells with destructible blocks at a configurable probability, leaving the top-left corner clear for the player.
+
+### D10 — Player gets stuck in their own bomb and drifts left
+- **Issue:** When the player places a bomb, the bomb occupies the same grid cell as the player. The player's own bomb is treated as a walkable obstruction by `_isBlocked()`, so the player can't leave. Movement drifts left because the left edge of the canvas cell has slightly more overlap with walkable space, or the input drifts.
+- **Impact:** Player places a bomb → immediately stuck. Trapped in their own creation. Very frustrating.
+- **Severity:** High — core gameplay broken.
+- **Fix:** When checking if a cell is blocked by a bomb, skip the bomb that the player is currently standing on (already handled in `_isBlocked()` for the bomb, but `player.move()` likely resolves the collision using grid position which matches the bomb's grid cell). Check `player.move()` logic — it may not be using the `_isBlocked` callback properly, or the bomb check in `_isBlocked` isn't matching because the player's grid position hasn't updated yet.
