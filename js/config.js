@@ -20,7 +20,13 @@ const CONFIG = {
     DRIFTER: '#9b59b6',
     DRIFTER_BLINK: '#c39bd6',
   },
+  ENEMY_SPEEDS: {
+    ROAMER: 1.5,
+    CHASER: 2.0,
+    DRIFTER: 1.0,
+  },
   CHASER_DETECT_RANGE: 5,
+  CHASER_MOVE_INTERVAL: 0.2,
   BOMB_COUNT: 2,
   BOMB_COUNT_MAX: 4,
   FIRE_RANGE: 2,

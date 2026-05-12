@@ -20,26 +20,71 @@ class Enemy {
     this.moveTimer += dt;
     this.blinkTimer += dt;
 
-    if (this.moveTimer >= this.moveInterval) {
-      this.moveTimer = 0;
-      this.tryMove(map, player);
+    // Type-specific move interval
+    let interval = this.moveInterval;
+    if (this.type === CONFIG.ENEMY_TYPES.CHASER) {
+      interval = CONFIG.CHASER_MOVE_INTERVAL;
     }
 
-    // Roamers: slight chance to change direction at empty spaces
-    if (this.type === CONFIG.ENEMY_TYPES.ROAMER
-        && map.isWalkable(this.gridX, this.gridY)
-        && Math.random() < 0.05) {
-      this.dir = Math.floor(Math.random() * 4);
+    if (this.moveTimer >= interval) {
+      this.moveTimer = 0;
+      this._chooseDirection(map, player);
+      this._tryMove(map);
     }
 
     return false;
+  }
+
+  _chooseDirection(map, player) {
+    const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
+    if (this.type === CONFIG.ENEMY_TYPES.CHASER) {
+      // Chase: pick direction that minimizes Manhattan distance to player
+      let bestDir = -1;
+      let bestDist = Infinity;
+      for (let i = 0; i < 4; i++) {
+        const [dx, dy] = dirs[i];
+        const nx = this.gridX + dx;
+        const ny = this.gridY + dy;
+        if (!map.isWalkable(nx, ny) || nx < 0 || ny < 0) continue;
+        const d = Math.abs(nx - player.gridX) + Math.abs(ny - player.gridY);
+        if (d < bestDist) {
+          bestDist = d;
+          bestDir = i;
+        }
+      }
+      // If no valid direction found, pick random valid one
+      if (bestDir === -1) {
+        this.dir = this._randomValidDir(map);
+      } else {
+        this.dir = bestDir;
+      }
+    } else if (this.type === CONFIG.ENEMY_TYPES.DRIFTER) {
+      // Drifter: keep current direction, only change if blocked (handled in _tryMove)
+    } else {
+      // Roamer: slight chance to change direction
+      if (map.isWalkable(this.gridX, this.gridY) && Math.random() < 0.05) {
+        this.dir = Math.floor(Math.random() * 4);
+      }
+    }
+  }
+
+  _randomValidDir(map) {
+    const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
+    const validDirs = [];
+    for (let i = 0; i < 4; i++) {
+      const [dx, dy] = dirs[i];
+      const nx = this.gridX + dx;
+      const ny = this.gridY + dy;
+      if (map.isWalkable(nx, ny) && nx >= 0 && ny >= 0) validDirs.push(i);
+    }
+    return validDirs.length > 0 ? validDirs[Math.floor(Math.random() * validDirs.length)] : this.dir;
   }
 
   _distToPlayer(player) {
     return Math.abs(this.gridX - player.gridX) + Math.abs(this.gridY - player.gridY);
   }
 
-  tryMove(map, player) {
+  _tryMove(map) {
     const cs = this.config.CELL_SIZE;
     const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
     const [dx, dy] = dirs[this.dir];
@@ -53,7 +98,9 @@ class Enemy {
       this.x = nx * cs;
       this.y = ny * cs;
     } else {
-      // Pick new random direction
+      // Hit a wall — pick a new direction
+      // For roamers and chasers: random valid direction
+      // For drifters: pick the first valid direction (keep bouncing)
       const validDirs = [];
       for (let i = 0; i < 4; i++) {
         const [adx, ady] = dirs[i];
@@ -61,7 +108,14 @@ class Enemy {
         const ay = this.gridY + ady;
         if (map.isWalkable(ax, ay) && ax >= 0 && ay >= 0) validDirs.push(i);
       }
-      if (validDirs.length > 0) this.dir = validDirs[Math.floor(Math.random() * validDirs.length)];
+      if (validDirs.length > 0) {
+        if (this.type === CONFIG.ENEMY_TYPES.DRIFTER) {
+          // Drifter: try current direction first (it was blocked), then pick randomly
+          this.dir = validDirs[Math.floor(Math.random() * validDirs.length)];
+        } else {
+          this.dir = validDirs[Math.floor(Math.random() * validDirs.length)];
+        }
+      }
     }
   }
 

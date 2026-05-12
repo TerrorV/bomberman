@@ -40,7 +40,7 @@ class Game {
     this.gameState = 'playing';
 
     // Spawn enemies
-    this.enemies = CONFIG.ENEMY_SPAWNS.map(spawn => new Enemy(CONFIG, spawn.x, spawn.y));
+    this.enemies = CONFIG.ENEMY_SPAWNS.map(spawn => new Enemy(CONFIG, spawn.x, spawn.y, spawn.type));
 
     // Clear arrays
     this.bombs = [];

@@ -30,7 +30,10 @@
 ## 🎨 Extras (later)
 - [x] Particle effects wired up (burstAt→burst fix) ✅
 - [x] Explosion outer glow effect ✅
-- [ ] More enemy types (chase vs random)
+- [x] Multiple enemy types: Roamer (red), Chaser (orange, faster, pursues player), Drifter (purple, straight-line bouncer)
+- [ ] Lives system
+- [ ] Multiple levels / procedurally generated maps
+- [ ] Mobile touch controls
 - [ ] Multiple levels / procedurally generated maps
 - [ ] Countdown timer (lose if time runs out)
 - [ ] Lives system
