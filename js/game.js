@@ -17,6 +17,7 @@ class Game {
     this.bombCooldown = 0;
     this.deathAnimTimer = 0;
     this.timeLeft = CONFIG.GAME_TIME;
+    this.lives = CONFIG.MAX_LIVES;
     this.highScore = this._loadHighScore();
     this.particles = new ParticleSystem();
   }
@@ -35,6 +36,7 @@ class Game {
     this.score = 0;
     this.bombCooldown = 0;
     this.timeLeft = CONFIG.GAME_TIME;
+    this.lives = CONFIG.MAX_LIVES;
     this.gameState = 'playing';
 
     // Spawn enemies
