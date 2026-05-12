@@ -16,6 +16,7 @@ class Game {
     this.score = 0;
     this.bombCooldown = 0;
     this.deathAnimTimer = 0;
+    this.timeLeft = CONFIG.GAME_TIME;
     this.highScore = this._loadHighScore();
     this.particles = new ParticleSystem();
   }
@@ -33,6 +34,7 @@ class Game {
     // Reset score and state
     this.score = 0;
     this.bombCooldown = 0;
+    this.timeLeft = CONFIG.GAME_TIME;
     this.gameState = 'playing';
 
     // Spawn enemies
@@ -116,7 +118,16 @@ class Game {
       this.player.speedBoostTimer > 0 ? `👾 ${this.enemies.filter(e => e.alive).length}` : '',
     ].filter(Boolean).join(` `);
     ctx.fillText(rightLine, statsX, statsY);
-  }
+
+    // Timer
+    const mins = Math.floor(this.timeLeft / 60);
+    const secs = this.timeLeft % 60;
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    const urgent = this.timeLeft <= 30;
+    ctx.fillStyle = urgent ? '#e74c3c' : '#fff';
+    ctx.font = urgent ? `bold ${fontSize + 4}px Segoe UI, Arial` : `bold ${fontSize}px Segoe UI, Arial`;
+    ctx.textAlign = 'right';
+    ctx.fillText(timeStr, statsX, statsY + 30);  }
 
   _renderStartScreen() {
     const ctx = this.ctx;
@@ -240,7 +251,7 @@ class Game {
     }
 
     // Restart on R after game ends
-    if ((this.gameState === state.gameover || this.gameState === state.win) && this.input.isPressed('r')) {
+    if ((this.gameState === state.gameover || this.gameState === state.win) && this.input.isPressed('KeyR')) {
       this._checkHighScore();
       this.restart();
       this.gameState = state.playing;
@@ -274,14 +285,22 @@ class Game {
 
     // 3. Update bombs
     const newExplosions = [];
+    const bombsBefore = this.bombs.slice(); // snapshot for BOMB_CHECK
     this.bombs = this.bombs.filter(bomb => {
       if (bomb.update(dt)) {
-        const fireCells = bomb.explode(CONFIG, this.player.fireRange);
+        // Pass wall/block/bomb checks to explosion logic
+        const fireCells = bomb.explode(CONFIG, this.player.fireRange, {
+          WALL_CHECK: (x, y) => this.mapSystem.isWall(x, y),
+          BLOCK_CHECK: (x, y) => this.mapSystem.isBlock(x, y),
+          BOMB_CHECK: (x, y) => { return bombsBefore.some(b => b.gridX === x && b.gridY === y); },
+        });
         newExplosions.push(new Explosion(fireCells, CONFIG));
         // Spawn particles for each fire cell
         for (const cell of fireCells) {
           this.particles.burst(cell.x, cell.y, 'radial', 6);
         }
+        // Return bomb to inventory
+        this.player.bombsPlaced--;
         return false;
       }
       return true;
@@ -312,8 +331,14 @@ class Game {
       this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
     }
 
-    // Merge new explosions
-    this.explosions.push(...newExplosions);
+    // Merge new explosions (only once)
+    const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
+    for (const exp of newExplosions) {
+      const key = exp.fireCells.map(c => `${c.x},${c.y}`).join('-');
+      if (!existingKeys.has(key)) {
+        this.explosions.push(exp);
+      }
+    }
 
     // 5. Update explosions
     this.explosions = this.explosions.filter(exp => exp.update(dt));
@@ -360,7 +385,15 @@ class Game {
       }
     }
 
-    // 8. Check win condition
+    // 8. Timer countdown
+    this.timeLeft -= dt;
+    if (this.timeLeft <= 0) {
+      this.timeLeft = 0;
+      this.gameState = 'gameover';
+      return;
+    }
+
+    // 9. Check win condition
     if (this.enemies.every(e => !e.alive)) {
       this.gameState = 'win';
     }

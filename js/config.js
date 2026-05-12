@@ -38,6 +38,7 @@ const CONFIG = {
   POWERUP_FIRE: 'fire',
   POWERUP_BOMB: 'bomb',
   POWERUP_SPEED: 'speed',
+  GAME_TIME: 300, // 5 minutes
   TILE: { EMPTY: 0, WALL: 1, BLOCK: 2 },
   COLORS: {
     WALL: '#3a3a3a',
