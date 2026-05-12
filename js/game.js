@@ -123,7 +123,7 @@ class Game {
 
     // Timer
     const mins = Math.floor(this.timeLeft / 60);
-    const secs = this.timeLeft % 60;
+    const secs = Math.floor(this.timeLeft) % 60;
     const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
     const urgent = this.timeLeft <= 30;
     ctx.fillStyle = urgent ? '#e74c3c' : '#fff';
@@ -347,6 +347,17 @@ class Game {
 
     // 5b. Kill enemies hit by explosions
     for (const exp of this.explosions) {
+      for (const cell of exp.fireCells) {
+        for (const enemy of this.enemies) {
+          if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {
+            enemy.alive = false;
+            this.score += 100;
+            soundFX.kill();
+          }
+        }
+      }
+    }
+    for (const exp of newExplosions) {
       for (const cell of exp.fireCells) {
         for (const enemy of this.enemies) {
           if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {

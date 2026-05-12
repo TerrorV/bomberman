@@ -42,8 +42,11 @@ bomberman/
 | # | Issue | Status | Priority |
 |---|-------|--------|----------|
 | B14 | Enemy move timers synced | ✅ Fixed (random offset in Enemy ctor) | Low |
-| B15 | Enemies phase through bombs | ❌ Not fixed | Low |
-| B16 | Explosions pass through bombs silently | ✅ Fixed (BOMB_CHECK wired) | Low |
+| B15 | Enemies phase through bombs | ⚠️ Partially fixed — player sees destroyed blocks, but enemy `tryMove()` still ignores bomb cells | Low |
+| B16 | Explosions pass through bombs silently | ✅ Fixed (BOMB_CHECK wired in game.js step 3) | Low |
+| C1 | Fire range power-up does nothing | ✅ Fixed (`fireRange` passed to `explode()` in game.js step 3) | Was Critical |
+| C2 | Explosions can't destroy blocks | ✅ Fixed (`destroyBlock` + powerup spawn in game.js step 4) | Was Critical |
+| D1 | Enemies are never killed by explosions | ✅ Fixed (`enemy.alive = false` in game.js step 5b) | Was High |
 
 ## Next Features (in priority order)
 

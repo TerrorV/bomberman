@@ -35,7 +35,11 @@ class Enemy {
     return false;
   }
 
-  tryMove(map) {
+  _distToPlayer(player) {
+    return Math.abs(this.gridX - player.gridX) + Math.abs(this.gridY - player.gridY);
+  }
+
+  tryMove(map, player) {
     const cs = this.config.CELL_SIZE;
     const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
     const [dx, dy] = dirs[this.dir];
