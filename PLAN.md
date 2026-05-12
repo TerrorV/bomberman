@@ -50,10 +50,11 @@ bomberman/
 
 ## Next Features (in priority order)
 
-### 1️⃣ Multiple Enemy Types
-- Current: all 4 enemies are identical roamers
-- Add: Chaser (moves toward player when in range), Drifter (straight-line until wall)
-- Visual differentiation via colors
+### 1️⃣ Multiple Enemy Types ✅ DONE
+- Chaser (orange, speed 2.0): moves every 0.2s, chases player via Manhattan distance minimization when in detection range
+- Drifter (purple, speed 1.0): moves straight, bounces off walls, keeps current direction until blocked
+- Roamer (red, speed 1.5, unchanged): wanders randomly with 5% chance to change direction
+- Visual differentiation via type-specific colors ✅
 
 ### 2️⃣ Lives System
 - Start with 3 lives

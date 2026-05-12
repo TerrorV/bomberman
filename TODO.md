@@ -17,6 +17,13 @@
 - [x] Core bugs fixed (B1-B8)
 ## 🔊 Sound (in progress)
 - [x] Sound effects (place, explosion, power-up, death)
+## 👾 Enemy Types (DONE)
+- [x] Roamer (red, speed 1.5): wanders randomly
+- [x] Chaser (orange, speed 2.0): chases player when in detection range
+- [x] Drifter (purple, speed 1.0): straight-line bouncer
+- [x] Spawn types wired from config
+- [x] Type-specific move intervals
+- [x] Visual differentiation via ENEMY_COLORS
 
 ## 🔍 BotLee Code Review Findings (2026-05-11 — needs relevance check)
 - [ ] **B1 — Dead BOMB_CHECK path**: `bomb.explode(CONFIG)` never passes BOMB_CHECK/BLOCK_CHECK callbacks. BOMB_CHECK in bombs.js:38 is dead code. Currently correct behavior (explosions pass through bombs per classic rules), but the dead code path is misleading. Decide: wire it up properly or remove the dead branch.
@@ -31,14 +38,7 @@
 - [x] Particle effects wired up (burstAt→burst fix) ✅
 - [x] Explosion outer glow effect ✅
 - [x] Multiple enemy types: Roamer (red), Chaser (orange, faster, pursues player), Drifter (purple, straight-line bouncer)
-- [ ] Lives system
-- [ ] Multiple levels / procedurally generated maps
-- [ ] Mobile touch controls
-- [ ] Multiple levels / procedurally generated maps
-- [ ] Countdown timer (lose if time runs out)
-- [ ] Lives system
 - [x] Speed boost power-up ⚡ (DONE)
-- [ ] Hard wall (indestructible) placement
-- [ ] High score in localStorage
-- [ ] Particle effects for explosions
+- [ ] Lives system
+- [ ] Multiple levels / procedurally generated maps
 - [ ] Mobile touch controls
