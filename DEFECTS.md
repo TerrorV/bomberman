@@ -67,3 +67,15 @@ Recorded 2026-05-12 by Vlad. Do NOT go through the codebase — just track these
 - **Issue:** In `Bomb.explode()`, the `config.BOMB_CHECK` check is undefined when called from `game.js`, so explosions pass right through other bombs silently.
 - **Severity:** None if intentional (classic Bomberman behavior), but the check is a no-op.
 - **Fix:** Either wire up the callback or remove the dead code.
+
+### D7 — Timer shows too many decimal digits
+- **Issue:** `timeLeft` is a float decremented by `dt` each frame. The seconds display (`this.timeLeft % 60`) produces values like `59.999`, making the timer look like `1:59.999` with unnecessary decimals.
+- **Impact:** Ugly HUD — timer flickers between `1:59.999`, `1:59.998`, etc. instead of clean `1:59`.
+- **Severity:** Low — cosmetic.
+- **Fix:** Floor the seconds value: `Math.floor(this.timeLeft) % 60`.
+
+### D8 — Enemies can't be killed by *new* explosions this frame
+- **Issue:** When a bomb explodes in step 3, new fire cells are pushed into `newExplosions`. The enemy kill check in step 5b only iterates `this.explosions` (from previous frames), so enemies caught by explosions that just went off this frame survive.
+- **Impact:** If an enemy is standing on a tile that just exploded, it gets the score bonus + sound but remains alive and continues walking — effectively immortal as long as it stands in the blast.
+- **Severity:** Medium — gameplay-breaking for combat feel.
+- **Fix:** Run the same enemy kill loop over `newExplosions` as well.
