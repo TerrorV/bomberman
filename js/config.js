@@ -7,6 +7,20 @@ const CONFIG = {
   PLAYER_SPEED_BOOST: 1.5,
   ENEMY_SPEED: 1.5,
   ENEMY_COUNT: 4,
+  ENEMY_TYPES: {
+    ROAMER: 'roamer',    // wanders randomly (default)
+    CHASER: 'chaser',    // pursues player when in range
+    DRIFTER: 'drifter',  // moves straight, bounces off walls
+  },
+  ENEMY_COLORS: {
+    ROAMER: '#e74c3c',
+    ROAMER_BLINK: '#ff6b6b',
+    CHASER: '#e67700',
+    CHASER_BLINK: '#ff9f43',
+    DRIFTER: '#9b59b6',
+    DRIFTER_BLINK: '#c39bd6',
+  },
+  CHASER_DETECT_RANGE: 5,
   BOMB_COUNT: 2,
   BOMB_COUNT_MAX: 4,
   FIRE_RANGE: 2,
@@ -29,10 +43,10 @@ const CONFIG = {
   ],
   START_POS: { x: 1, y: 1 },
   ENEMY_SPAWNS: [
-    { x: 13, y: 1 },
-    { x: 1, y: 11 },
-    { x: 13, y: 11 },
-    { x: 7, y: 5 },
+    { x: 13, y: 1, type: 'roamer' },
+    { x: 1, y: 11, type: 'chaser' },
+    { x: 13, y: 11, type: 'drifter' },
+    { x: 7, y: 5, type: 'roamer' },
   ],
   POWERUP_SPAWN: { chance: 0.3 },
   POWERUP_FIRE: 'fire',

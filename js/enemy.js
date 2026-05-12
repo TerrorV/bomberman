@@ -1,30 +1,34 @@
 // enemy.js - Enemy AI and rendering
 class Enemy {
-  constructor(config, spawnX, spawnY) {
+  constructor(config, spawnX, spawnY, type) {
     this.config = config;
     this.gridX = spawnX;
     this.gridY = spawnY;
     this.x = spawnX * config.CELL_SIZE;
     this.y = spawnY * config.CELL_SIZE;
+    this.type = type || config.ENEMY_TYPES.ROAMER;
     this.dir = Math.floor(Math.random() * 4); // 0=up, 1=right, 2=down, 3=left
     this.moveTimer = 0;
     this.moveInterval = 0.3; // update direction every 0.3s
     this.alive = true;
     this.blinkTimer = 0;
+    this._strafeDir = Math.floor(Math.random() * 4); // drifter: initial direction
   }
 
-  update(dt, map) {
+  update(dt, map, player) {
     if (!this.alive) return false;
     this.moveTimer += dt;
     this.blinkTimer += dt;
 
     if (this.moveTimer >= this.moveInterval) {
       this.moveTimer = 0;
-      this.tryMove(map);
+      this.tryMove(map, player);
     }
 
-    // Slight chance to change direction at empty spaces
-    if (map.isWalkable(this.gridX, this.gridY) && Math.random() < 0.05) {
+    // Roamers: slight chance to change direction at empty spaces
+    if (this.type === CONFIG.ENEMY_TYPES.ROAMER
+        && map.isWalkable(this.gridX, this.gridY)
+        && Math.random() < 0.05) {
       this.dir = Math.floor(Math.random() * 4);
     }
 
@@ -83,7 +87,10 @@ class Enemy {
       ctx.lineTo(wx, wy);
     }
     ctx.closePath();
-    ctx.fillStyle = blink ? config.COLORS.ENEMY : '#ff6b6b';
+    // Use type-specific colors
+    const baseKey = this.type.toUpperCase();
+    const colorKey = blink ? `${baseKey}_BLINK` : baseKey;
+    ctx.fillStyle = config.ENEMY_COLORS[colorKey] || config.COLORS.ENEMY;
     ctx.fill();
 
     // Eyes
