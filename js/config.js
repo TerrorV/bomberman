@@ -32,21 +32,12 @@ const CONFIG = {
   FIRE_RANGE: 2,
   FIRE_RANGE_MAX: 6,
   BOMB_COUNTDOWN: 3,
-  MAP_ROWS: [
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,2,0,2,0,2,0,2,0,2,0,2,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,2,0,2,0,2,0,2,0,2,0,2,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,2,0,2,0,0,0,2,0,2,0,2,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,2,0,2,0,2,0,2,0,2,0,2,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,0,2,0,2,0,2,0,2,0,2,0,2,0,1,
-    1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  ],
+  // Procedural map settings
+  BLOCK_DENSITY_LEVEL1: 0.45,   // destructible block fill rate for level 1
+  BLOCK_DENSITY_PER_LEVEL: 0.06, // density increase per level
+  BLOCK_DENSITY_MAX: 0.75,
+  // Seed helper for reproducibility (not used for random maps, but available)
+  WALL_GRID_SPACING: 2, // indestructible walls every 2 cells
   START_POS: { x: 1, y: 1 },
   ENEMY_SPAWNS: [
     { x: 13, y: 1, type: 'roamer' },

@@ -5,13 +5,72 @@ class MapSystem {
     this.config = config;
   }
 
-  static create(config) {
-    const { COLS, ROWS, MAP_ROWS, TILE } = config;
-    const grid = [];
-    for (let i = 0; i < MAP_ROWS.length; i += COLS) {
-      grid.push(MAP_ROWS.slice(i, i + COLS));
+  static create(config, level = 1) {
+    const { COLS, ROWS, TILE, START_POS, ENEMY_SPAWNS } = config;
+    let grid;
+
+    // Procedural generation (D9 fix)
+    if (level === 1 || !config.MAP_ROWS || level <= 1) {
+      grid = MapSystem._genProcedural(config, level);
+    } else {
+      // Legacy: use static MAP_ROWS
+      grid = [];
+      for (let i = 0; i < ROWS; i += 1) {
+        grid.push(config.MAP_ROWS.slice(i * COLS, (i + 1) * COLS));
+      }
     }
     return new MapSystem(grid, config);
+  }
+
+  static _genProcedural(config, level) {
+    const { COLS, ROWS, TILE, START_POS, ENEMY_SPAWNS, BLOCK_DENSITY_LEVEL1, BLOCK_DENSITY_PER_LEVEL, BLOCK_DENSITY_MAX, WALL_GRID_SPACING } = config;
+    // Build blank grid (all empty)
+    const grid = [];
+    for (let y = 0; y < ROWS; y++) {
+      grid[y] = new Array(COLS).fill(TILE.EMPTY);
+    }
+
+    // 1) Place indestructible walls on a repeating grid (every WALL_GRID_SPACING cell)
+    for (let y = 1; y < ROWS - 1; y += WALL_GRID_SPACING) {
+      for (let x = 1; x < COLS - 1; x += WALL_GRID_SPACING) {
+        grid[y][x] = TILE.WALL;
+      }
+    }
+
+    // 2) Calculate density for this level
+    const density = Math.min(
+      BLOCK_DENSITY_LEVEL1 + (level - 1) * BLOCK_DENSITY_PER_LEVEL,
+      BLOCK_DENSITY_MAX
+    );
+
+    // 3) Fill remaining floor tiles with blocks at the configured density
+    for (let y = 1; y < ROWS - 1; y++) {
+      for (let x = 1; x < COLS - 1; x++) {
+        if (grid[y][x] === TILE.EMPTY && Math.random() < density) {
+          grid[y][x] = TILE.BLOCK;
+        }
+      }
+    }
+
+    // 4) Clear player start position
+    grid[START_POS.y][START_POS.x] = TILE.EMPTY;
+    // Clear 1 cell around start
+    if (START_POS.x + 1 < COLS - 1) grid[START_POS.y][START_POS.x + 1] = TILE.EMPTY;
+    if (START_POS.x - 1 >= 1) grid[START_POS.y][START_POS.x - 1] = TILE.EMPTY;
+    if (START_POS.y + 1 < ROWS - 1) grid[START_POS.y + 1][START_POS.x] = TILE.EMPTY;
+    if (START_POS.y - 1 >= 1) grid[START_POS.y - 1][START_POS.x] = TILE.EMPTY;
+
+    // 5) Clear all enemy spawn positions
+    for (const spawn of ENEMY_SPAWNS) {
+      grid[spawn.y][spawn.x] = TILE.EMPTY;
+      // Clear neighbors so enemies aren't trapped
+      if (spawn.x + 1 < COLS - 1) grid[spawn.y][spawn.x + 1] = TILE.EMPTY;
+      if (spawn.x - 1 >= 1) grid[spawn.y][spawn.x - 1] = TILE.EMPTY;
+      if (spawn.y + 1 < ROWS - 1) grid[spawn.y + 1][spawn.x] = TILE.EMPTY;
+      if (spawn.y - 1 >= 1) grid[spawn.y - 1][spawn.x] = TILE.EMPTY;
+    }
+
+    return grid;
   }
 
   isEmpty(x, y) { return this.grid[y]?.[x] === this.config.TILE.EMPTY; }

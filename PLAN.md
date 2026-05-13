@@ -3,7 +3,7 @@
 ## Status
 **Fully playable.** All core systems implemented, polished with sound, particles, timer, HUD, start screen.
 
-**Last commit:** `da2f603` — Countdown timer (5 min) + HUD urgency + explosion dedup
+**Last commit:** `31aff6d` — Enemy types (Chaser + Drifter) + PLAN/TODO cleanup
 
 ## Core Files
 ```
@@ -47,6 +47,7 @@ bomberman/
 | C1 | Fire range power-up does nothing | ✅ Fixed (`fireRange` passed to `explode()` in game.js step 3) | Was Critical |
 | C2 | Explosions can't destroy blocks | ✅ Fixed (`destroyBlock` + powerup spawn in game.js step 4) | Was Critical |
 | D1 | Enemies are never killed by explosions | ✅ Fixed (`enemy.alive = false` in game.js step 5b) | Was High |
+| D9 | Map layout: static, no structure | ✅ Fixed (procedural gen with maze walls + density per level) | Was High |
 
 ## Next Features (in priority order)
 
