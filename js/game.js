@@ -23,6 +23,7 @@ class Game {
     this.highScore = this._loadHighScore();
     this.particles = new ParticleSystem();
     this.powerupSystem = new PowerUpSystem(this);
+    this.timer = new Timer(this);
     this._levelTimer = 0;
     this._levelTransitionStep = 0; // 0=show level, 1=countdown, 2=done
     this._levelTransitionScore = 0;
@@ -341,17 +342,10 @@ class Game {
     // 7. Check powerup pickup + speed timer countdown
     this.powerupSystem.processPickup(dt);
 
-    // 8. Timer countdown
-    this.timeLeft -= dt;
-    if (this.timeLeft <= 0) {
-      this.timeLeft = 0;
-      this.gameState = 'gameover';
+    // 8. Timer countdown + win check
+    const timerResult = this.timer.update(dt);
+    if (timerResult === 'timeout' || timerResult === 'win') {
       return;
-    }
-
-    // 9. Check win condition
-    if (this.enemies.every(e => !e.alive)) {
-      this.gameState = 'win';
     }
   }
 
