@@ -24,6 +24,7 @@ class Game {
     this.particles = new ParticleSystem();
     this.powerupSystem = new PowerUpSystem(this);
     this.timer = new Timer(this);
+    this.levelSystem = new Level(this);
     this._levelTimer = 0;
     this._levelTransitionStep = 0; // 0=show level, 1=countdown, 2=done
     this._levelTransitionScore = 0;
@@ -326,17 +327,7 @@ class Game {
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       enemy.update(dt, this.mapSystem, this.player);
-      // Only kill if player is not invincible
-      if (this.player.invincible > 0) continue;
-      if (enemy.collidesWithPlayer(this.player, CONFIG)) {
-        this.player.alive = false;
-        soundFX.death();
-        // Spawn death explosion at player position
-        const deathFire = this._generateDeathExplosion(this.player.gridX, this.player.gridY);
-        this.explosions.push(new Explosion(deathFire, CONFIG));
-        this.deathAnimTimer = 0.5;
-        this.gameState = 'dying';
-      }
+      this.levelSystem.checkEnemyCollision(enemy);
     }
 
     // 7. Check powerup pickup + speed timer countdown
@@ -350,52 +341,23 @@ class Game {
   }
 
   _generateDeathExplosion(gx, gy) {
-    // 3x3 explosion centered on player
-    const fireCells = [];
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        fireCells.push({ x: gx + dx, y: gy + dy });
-      }
-    }
-    return fireCells;
+    return this.levelSystem._generateDeathExplosion(gx, gy);
   }
 
   _loadHighScore() {
-    try {
-      return parseInt(localStorage.getItem('bomberman_highscore'), 10) || 0;
-    } catch { return 0; }
+    return this.levelSystem._loadHighScore();
   }
 
   _saveHighScore() {
-    try {
-      localStorage.setItem('bomberman_highscore', String(this.highScore));
-    } catch {}
-  }
-
-  _handlePlayerDeath() {
-    this.lives--;
-    if (this.lives <= 0) {
-      this.gameState = 'gameover';
-      this.player.alive = false;
-    } else {
-      // Clear nearby bombs/explosions so player isn't immediately killed again
-      this.bombs = this.bombs.filter(b => {
-        const d = Math.abs(b.gridX - this.player.gridX) + Math.abs(b.gridY - this.player.gridY);
-        return d > 2;
-      });
-      this.explosions = [];
-      // Respawn at start
-      this.player.reset();
-      this.player.invincible = 3; // 3 seconds invincibility
-      this.gameState = 'playing';
-    }
+    this.levelSystem._saveHighScore();
   }
 
   _checkHighScore() {
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      this._saveHighScore();
-    }
+    this.levelSystem._checkHighScore();
+  }
+
+  _handlePlayerDeath() {
+    this.levelSystem.handleDeath();
   }
 
 
