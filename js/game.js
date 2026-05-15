@@ -4,6 +4,7 @@ class Game {
   constructor(canvas) {
     this.ctx = canvas.getContext('2d');
     this.input = new Input();
+    this.ui = new UI(this.ctx, this.ctx.canvas);
 
     // state
     this.mapSystem = null;
@@ -125,74 +126,9 @@ class Game {
     return false;
   }
 
-  _renderHUD() {
-    const ctx = this.ctx;
-    const canvas = ctx.canvas;
-    if (this.gameState !== 'playing') return;
 
-    const padding = 16;
-    const fontSize = 18;
-    ctx.font = `bold ${fontSize}px Segoe UI, Arial`;
-    ctx.textBaseline = 'top';
 
-    // Score (top-left)
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${this.score}`, padding, padding);
 
-    // Right-side stats
-    ctx.textAlign = 'right';
-    const statsY = padding;
-    let statsX = canvas.width - padding;
-    const gap = 4;
-    const livesStr = '❤️'.repeat(Math.max(0, this.lives));
-    const rightLine = [
-      `🔥 ${this.player.fireRange}`,
-      `💣 ${this.player.bombsPlaced}/${this.player.bombCount}`,
-      this.player.speedBoostTimer > 0 ? `⚡ ${Math.ceil(this.player.speedBoostTimer)}s` : `👾 ${this.enemies.filter(e => e.alive).length}`,
-      this.player.speedBoostTimer > 0 ? `👾 ${this.enemies.filter(e => e.alive).length}` : '',
-      livesStr,
-    ].filter(Boolean).join(` `);
-    ctx.fillText(rightLine, statsX, statsY);
-
-    // Timer
-    const mins = Math.floor(this.timeLeft / 60);
-    const secs = Math.floor(this.timeLeft) % 60;
-    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
-    const urgent = this.timeLeft <= 30;
-    ctx.fillStyle = urgent ? '#e74c3c' : '#fff';
-    ctx.font = urgent ? `bold ${fontSize + 4}px Segoe UI, Arial` : `bold ${fontSize}px Segoe UI, Arial`;
-    ctx.textAlign = 'right';
-    ctx.fillText(timeStr, statsX, statsY + 30);  }
-
-  _renderStartScreen() {
-    const ctx = this.ctx;
-    const canvas = ctx.canvas;
-
-    // Dark overlay
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Title
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    ctx.font = 'bold 64px Segoe UI, Arial';
-    ctx.fillText('BOMBERMAN', canvas.width / 2, canvas.height / 2 - 80);
-
-    // Blinking prompt
-    if (Math.floor(Date.now() / 500) % 2) {
-      ctx.font = 'bold 24px Segoe UI, Arial';
-      ctx.fillStyle = '#f1c40f';
-      ctx.fillText('Press ENTER to play!', canvas.width / 2, canvas.height / 2 + 20);
-    }
-
-    // Controls
-    ctx.font = '18px Segoe UI, Arial';
-    ctx.fillStyle = '#bbb';
-    ctx.fillText('WASD / Arrows — Move  |  Space — Bomb  |  R — Restart', canvas.width / 2, canvas.height / 2 + 80);
-  }
 
   render() {
     const ctx = this.ctx;
@@ -225,25 +161,15 @@ class Game {
     this.enemies.forEach(e => e.render(ctx, cx, cy, CONFIG));
 
     // HUD
-    this._renderHUD();
+    this.ui.renderHUD(this);
 
     // Start screen
     if (this.gameState === 'start') {
-      this._renderStartScreen();
+      this.ui.renderStartScreen();
     }
 
     // Game state text
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 36px Segoe UI, Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (this.gameState === 'gameover') {
-      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
-      this._renderHighScore();
-    } else if (this.gameState === 'win') {
-      ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2);
-      this._renderHighScore();
-    }
+    this.ui.renderStateText(this);
   }
 
   update(dt) {
@@ -496,15 +422,7 @@ class Game {
     }
   }
 
-  _renderHighScore() {
-    const ctx = this.ctx;
-    const canvas = ctx.canvas;
-    ctx.fillStyle = '#f1c40f';
-    ctx.font = 'bold 16px Segoe UI, Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(`High Score: ${this.highScore}`, canvas.width / 2, canvas.height - 12);
-  }
+
 }
 
 let game = null;
