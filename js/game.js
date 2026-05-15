@@ -22,6 +22,7 @@ class Game {
     this.lives = CONFIG.MAX_LIVES;
     this.highScore = this._loadHighScore();
     this.particles = new ParticleSystem();
+    this.powerupSystem = new PowerUpSystem(this);
     this._levelTimer = 0;
     this._levelTransitionStep = 0; // 0=show level, 1=countdown, 2=done
     this._levelTransitionScore = 0;
@@ -268,19 +269,12 @@ class Game {
     });
 
     // 4. Process explosions - destroy blocks and spawn powerups
-    const powerupCells = [];
     let hasExplosion = false;
     for (const exp of newExplosions) {
       hasExplosion = true;
       for (const cell of exp.fireCells) {
         if (this.mapSystem.isBlock(cell.x, cell.y)) {
           this.mapSystem.destroyBlock(cell.x, cell.y);
-          // Spawn powerup with chance
-          if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
-            const types = [CONFIG.POWERUP_FIRE, CONFIG.POWERUP_BOMB, CONFIG.POWERUP_SPEED];
-            const type = types[Math.floor(Math.random() * types.length)];
-            powerupCells.push({ x: cell.x, y: cell.y, type });
-          }
         }
       }
     }
@@ -288,9 +282,8 @@ class Game {
     if (hasExplosion) {
       soundFX.explosion();
     }
-    if (powerupCells.length > 0) {
-      this.powerups.push(...powerupCells.map(p => new PowerUp(p.x, p.y, p.type)));
-    }
+    // Delegate powerup spawning
+    this.powerupSystem.spawnFromExplosions(newExplosions);
 
     // Merge new explosions (only once)
     const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
@@ -346,18 +339,7 @@ class Game {
     }
 
     // 7. Check powerup pickup + speed timer countdown
-    if (this.player.speedBoostTimer > 0) {
-      this.player.speedBoostTimer -= dt;
-    }
-    for (let i = this.powerups.length - 1; i >= 0; i--) {
-      const pu = this.powerups[i];
-      pu.update(dt);
-      if (pu.collidesWith(this.player.x, this.player.y, CONFIG)) {
-        this.player.applyPowerup(pu.type);
-        soundFX.powerUp();
-        this.powerups.splice(i, 1);
-      }
-    }
+    this.powerupSystem.processPickup(dt);
 
     // 8. Timer countdown
     this.timeLeft -= dt;
