@@ -33,11 +33,10 @@ const CONFIG = {
   FIRE_RANGE_MAX: 6,
   BOMB_COUNTDOWN: 3,
   // Procedural map settings
-  BLOCK_DENSITY_LEVEL1: 0.45,   // destructible block fill rate for level 1
-  BLOCK_DENSITY_PER_LEVEL: 0.06, // density increase per level
+  BLOCK_DENSITY_LEVEL1: 0.45,
+  BLOCK_DENSITY_PER_LEVEL: 0.06,
   BLOCK_DENSITY_MAX: 0.75,
-  // Seed helper for reproducibility (not used for random maps, but available)
-  WALL_GRID_SPACING: 2, // indestructible walls every 2 cells
+  WALL_GRID_SPACING: 2,
   START_POS: { x: 1, y: 1 },
   ENEMY_SPAWNS: [
     { x: 13, y: 1, type: 'roamer' },
@@ -49,8 +48,13 @@ const CONFIG = {
   POWERUP_FIRE: 'fire',
   POWERUP_BOMB: 'bomb',
   POWERUP_SPEED: 'speed',
-  GAME_TIME: 300, // 5 minutes
+  GAME_TIME: 300,
   MAX_LIVES: 3,
+  MAX_LEVEL: 99,
+  ENEMIES_PER_LEVEL: 4,
+  ENEMY_ADD_PER_LEVEL: 1,
+  LEVEL_TRANSITION_DURATION: 2.5,
+  LEVEL_TRANSITION_COUNTDOWN: 2,
   TILE: { EMPTY: 0, WALL: 1, BLOCK: 2 },
   COLORS: {
     WALL: '#3a3a3a',

@@ -91,3 +91,31 @@ Recorded 2026-05-12 by Vlad. Do NOT go through the codebase — just track these
 - **Impact:** Player places a bomb → immediately stuck. Trapped in their own creation. Very frustrating.
 - **Severity:** High — core gameplay broken.
 - **Fix:** When checking if a cell is blocked by a bomb, skip the bomb that the player is currently standing on (already handled in `_isBlocked()` for the bomb, but `player.move()` likely resolves the collision using grid position which matches the bomb's grid cell). Check `player.move()` logic — it may not be using the `_isBlocked` callback properly, or the bomb check in `_isBlocked` isn't matching because the player's grid position hasn't updated yet.
+
+---
+
+## 🐛 New Defects (2026-05-14)
+
+### D11 — Enemies can walk through bombs
+- **Issue:** `Enemy.tryMove()` only checks `map.isWalkable()` which ignores bomb cells entirely. Enemies treat bomb tiles as empty space and pass right through them.
+- **Impact:** Bombs provide no tactical value — enemies just walk around/through them as if they aren't there. Player can't use bombs to trap or slow enemies.
+- **Severity:** Medium — undermines the core bomb-placement strategy.
+- **Fix:** Include bomb cells in the walkability check used by enemy movement. The enemy's `tryMove()` or the `map.isWalkable()` callback should resolve bomb cells as non-walkable (or at least for the bomb owner's own bombs).
+
+### D12 — Explosions pass through walls
+- **Issue:** Explosion propagation ignores wall tiles (indestructible blocks). Fire cells continue through walls instead of stopping at them.
+- **Impact:** Bombs detonate through solid walls, making them useless as barriers. Destroys maze strategy entirely.
+- **Severity:** 🔴 Critical — breaks the core layout/tactics of the game.
+- **Fix:** In the explosion propagation loop, check if a cell is a wall/indestructible block and stop that fire direction's propagation at that wall (don't add fire cells inside the wall, don't continue past it). Classic Bomberman fire stops at walls.
+
+### D13 — Bombs do not kill the player
+- **Issue:** When the player stands in their own explosion, the player is not killed. The explosion hit detection (step 5b) only checks enemies, not the player.
+- **Impact:** Player can stand on their own bomb, survive the explosion, and remain unharmed. Self-killing is a fundamental Bomberman mechanic.
+- **Severity:** 🔴 Critical — player should die if caught in their own explosion (or at minimum be unable to stand on it).
+- **Fix:** In step 5a/5b, add player hit detection against `fireCells`. If the player is in a fire cell, apply damage / kill the player. Alternatively, make the player's own bomb non-blocking so they can't stand on it.
+
+### D14 — Bombs do not chain to other bombs
+- **Issue:** When an explosion reaches a bomb tile, it passes through it without detonating the bomb. The bomb's `exploded` flag is never set to `true` by the explosion.
+- **Impact:** No chain-reaction explosions. Bombs act as walls instead of triggers — you can't blow up a cluster of bombs to clear a corridor. One of the most satisfying Bomberman mechanics is completely broken.
+- **Severity:** 🔴 Critical — chain reactions are core to Bomberman.
+- **Fix:** During explosion propagation in `bombs.js`, when a fire cell reaches a bomb that isn't yet exploded, set `bomb.exploded = true` so it detonates and propagates its own fire. The bomb should stop fire propagation at its cell (fire doesn't go past the triggered bomb) or propagate through it depending on design choice.

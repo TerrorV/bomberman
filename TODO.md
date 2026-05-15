@@ -42,3 +42,14 @@
 - [ ] Lives system
 - [ ] Multiple levels / procedurally generated maps
 - [ ] Mobile touch controls
+
+## 🐛 Bug Fixes
+- [ ] **Player gets stuck on bombs** — collision checks don't account for bomb cells; player slides into and sticks on placed bombs (up/down/left movement)
+
+## 🗺️ Map Layout
+- [ ] **Indestructible wall bounds** — outermost row/col should be destructible/blocks, indestructible blocks should start from grid (1,1) instead of (0,0)
+
+## 🌐 Deployment
+- [ ] **Azure Static Web Apps** — host the game on Azure Static Web Pages
+  - Requires: GitHub repo → Azure deployment pipeline
+  - Goal: live URL anyone can play

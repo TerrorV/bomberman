@@ -14,12 +14,16 @@ class Game {
     this.powerups = [];
     this.gameState = 'start';
     this.score = 0;
+    this.level = 1;
     this.bombCooldown = 0;
     this.deathAnimTimer = 0;
     this.timeLeft = CONFIG.GAME_TIME;
     this.lives = CONFIG.MAX_LIVES;
     this.highScore = this._loadHighScore();
     this.particles = new ParticleSystem();
+    this._levelTimer = 0;
+    this._levelTransitionStep = 0; // 0=show level, 1=countdown, 2=done
+    this._levelTransitionScore = 0;
   }
 
   start() {
@@ -53,11 +57,39 @@ class Game {
   }
 
   win() {
-    this.gameState = 'win';
+    if (this.level >= CONFIG.MAX_LEVEL) {
+      this.gameState = 'gameover';
+      return;
+    }
+    // Show level transition
+    this._levelTransitionScore = this.score;
+    this._levelTimer = CONFIG.LEVEL_TRANSITION_COUNTDOWN;
+    this._levelTransitionStep = 1; // countdown phase
+    this.gameState = 'levelwin';
   }
 
   restart() {
+    // Check high score before resetting
+    this._checkHighScore();
     this.start();
+  }
+
+  respawn() {
+    this.lives--;
+    if (this.lives <= 0) {
+      this.gameState = 'gameover';
+      return;
+    }
+    // Clear bombs/explosions near player
+    this.bombs = this.bombs.filter(b => {
+      const d = Math.abs(b.gridX - this.player.gridX) + Math.abs(b.gridY - this.player.gridY);
+      return d > 2;
+    });
+    this.explosions = [];
+    // Respawn player at start
+    this.player.reset();
+    this.player.invincible = 3; // 3s invincibility
+    this.gameState = 'playing';
   }
 
   _getGridOffset() {
@@ -113,11 +145,13 @@ class Game {
     const statsY = padding;
     let statsX = canvas.width - padding;
     const gap = 4;
+    const livesStr = '❤️'.repeat(Math.max(0, this.lives));
     const rightLine = [
       `🔥 ${this.player.fireRange}`,
       `💣 ${this.player.bombsPlaced}/${this.player.bombCount}`,
       this.player.speedBoostTimer > 0 ? `⚡ ${Math.ceil(this.player.speedBoostTimer)}s` : `👾 ${this.enemies.filter(e => e.alive).length}`,
       this.player.speedBoostTimer > 0 ? `👾 ${this.enemies.filter(e => e.alive).length}` : '',
+      livesStr,
     ].filter(Boolean).join(` `);
     ctx.fillText(rightLine, statsX, statsY);
 
@@ -247,8 +281,7 @@ class Game {
       const { cs, cx, cy } = this._getGridOffset();
       this.explosions.forEach(e => e.render(this.ctx, cx, cy, CONFIG));
       if (this.deathAnimTimer <= 0) {
-        this.gameState = state.gameover;
-        this.player.alive = false;
+        this._handlePlayerDeath();
       }
     }
 
@@ -372,7 +405,9 @@ class Game {
     // 6. Update enemies
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
-      enemy.update(dt, this.mapSystem);
+      enemy.update(dt, this.mapSystem, this.player);
+      // Only kill if player is not invincible
+      if (this.player.invincible > 0) continue;
       if (enemy.collidesWithPlayer(this.player, CONFIG)) {
         this.player.alive = false;
         soundFX.death();
@@ -433,6 +468,25 @@ class Game {
     try {
       localStorage.setItem('bomberman_highscore', String(this.highScore));
     } catch {}
+  }
+
+  _handlePlayerDeath() {
+    this.lives--;
+    if (this.lives <= 0) {
+      this.gameState = 'gameover';
+      this.player.alive = false;
+    } else {
+      // Clear nearby bombs/explosions so player isn't immediately killed again
+      this.bombs = this.bombs.filter(b => {
+        const d = Math.abs(b.gridX - this.player.gridX) + Math.abs(b.gridY - this.player.gridY);
+        return d > 2;
+      });
+      this.explosions = [];
+      // Respawn at start
+      this.player.reset();
+      this.player.invincible = 3; // 3 seconds invincibility
+      this.gameState = 'playing';
+    }
   }
 
   _checkHighScore() {

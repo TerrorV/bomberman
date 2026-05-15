@@ -67,6 +67,11 @@ class Player {
     this._lastMoveDirX = dx;
     this._lastMoveDirY = dy;
     if (!this.alive) return;
+    // Normalize diagonal to prevent √2 speed boost
+    if (dx !== 0 && dy !== 0) {
+      dx *= 0.7071;
+      dy *= 0.7071;
+    }
     const speed = this.getEffectiveSpeed();
     const newX = this.x + dx * speed;
     const newY = this.y + dy * speed;

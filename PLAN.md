@@ -1,9 +1,9 @@
-# Bomberman — Classic Game
+# Bomberman - Classic Game
 
 ## Status
 **Fully playable.** All core systems implemented, polished with sound, particles, timer, HUD, start screen.
 
-**Last commit:** `31aff6d` — Enemy types (Chaser + Drifter) + PLAN/TODO cleanup
+**Last commit:** `31aff6d` - Enemy types (Chaser + Drifter) + PLAN/TODO cleanup
 
 ## Core Files
 ```
@@ -42,7 +42,7 @@ bomberman/
 | # | Issue | Status | Priority |
 |---|-------|--------|----------|
 | B14 | Enemy move timers synced | ✅ Fixed (random offset in Enemy ctor) | Low |
-| B15 | Enemies phase through bombs | ⚠️ Partially fixed — player sees destroyed blocks, but enemy `tryMove()` still ignores bomb cells | Low |
+| B15 | Enemies phase through bombs | ⚠️ Partially fixed - player sees destroyed blocks, but enemy `tryMove()` still ignores bomb cells | Low |
 | B16 | Explosions pass through bombs silently | ✅ Fixed (BOMB_CHECK wired in game.js step 3) | Low |
 | C1 | Fire range power-up does nothing | ✅ Fixed (`fireRange` passed to `explode()` in game.js step 3) | Was Critical |
 | C2 | Explosions can't destroy blocks | ✅ Fixed (`destroyBlock` + powerup spawn in game.js step 4) | Was Critical |
@@ -74,9 +74,13 @@ bomberman/
 - Between levels: show level number, brief pause, then countdown
 
 ## TODO
-- [ ] Add Chaser enemy type
-- [ ] Add Drifter enemy type  
-- [ ] Differentiate enemy visuals by type
+- [ ] **🔴 High prio - Refactor game.js: extract subsystems** (size & complexity reduction)
+  - Extract **power-up** logic to `js/powerup-system.js` (spawning, application, inventory)
+  - Extract **UI/HUD** rendering to `js/ui.js` (start screen, HUD, win/gameover overlays)
+  - Extract **timer** management to `js/timer.js` (countdown, urgency, level timer)
+  - Extract **game state / level management** to `js/level.js` (lives, level transitions, procedural gen)
+  - Game.js should stay thin - loop + state machine + delegate to subsystems
+  - Keep `config.js`, `map.js`, `player.js`, `bombs.js`, `enemy.js`, `input.js` as-is
 - [ ] Lives system (3 lives, HUD display)
 - [ ] Procedural map generation for levels 2+
 - [ ] Mobile touch controls

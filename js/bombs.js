@@ -94,6 +94,7 @@ class Explosion {
     this.fireCells = fireCells;
     this.timer = 0.5; // lives for 0.5s
     this.maxTimer = 0.5;
+    this._soundPlayed = false;
   }
 
   update(dt) {
