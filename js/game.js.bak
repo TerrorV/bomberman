@@ -173,9 +173,6 @@ class Game {
 
     // Game state text
     this.ui.renderStateText(this);
-
-    // Level transition overlay
-    this.ui.renderLevelTransition(this);
   }
 
   update(dt) {
@@ -222,16 +219,6 @@ class Game {
       this._checkHighScore();
       this.restart();
       this.gameState = state.playing;
-    }
-
-    // Level transition countdown
-    if (this.gameState === 'levelwin') {
-      this._levelTimer -= dt;
-      if (this._levelTimer <= 0) {
-        // Advance to next level
-        this.level++;
-        this.start();
-      }
     }
 
     this.input.update();

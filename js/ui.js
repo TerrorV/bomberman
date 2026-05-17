@@ -86,6 +86,41 @@ class UI {
     this.renderHighScore(state);
   }
 
+  // --- Level transition ---
+  renderLevelTransition(state) {
+    if (state.gameState !== 'levelwin') return;
+    const ctx = this.ctx;
+    const canvas = this.canvas;
+
+    // Semi-transparent overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Level cleared
+    ctx.fillStyle = '#2ecc71';
+    ctx.font = 'bold 48px Segoe UI, Arial';
+    ctx.fillText(`LEVEL ${state.level} CLEARED!`, canvas.width / 2, canvas.height / 2 - 60);
+
+    // Score gained
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 28px Segoe UI, Arial';
+    ctx.fillText(`+${state._levelTransitionScore} pts`, canvas.width / 2, canvas.height / 2 - 10);
+
+    // Total score
+    ctx.fillStyle = '#fff';
+    ctx.font = '22px Segoe UI, Arial';
+    ctx.fillText(`Total: ${state.score}`, canvas.width / 2, canvas.height / 2 + 30);
+
+    // Countdown
+    const secs = Math.ceil(state._levelTimer);
+    ctx.fillStyle = '#bbb';
+    ctx.font = '18px Segoe UI, Arial';
+    ctx.fillText(`Next level in ${secs}s...`, canvas.width / 2, canvas.height / 2 + 70);
+  }
+
   // --- High score ---
   renderHighScore(state) {
     const ctx = this.ctx;
