@@ -7,6 +7,7 @@ const CONFIG = {
   PLAYER_SPEED_BOOST: 1.5,
   ENEMY_SPEED: 1.5,
   ENEMY_COUNT: 4,
+  MAX_ENEMY_COUNT: 20,
   ENEMY_TYPES: {
     ROAMER: 'roamer',    // wanders randomly (default)
     CHASER: 'chaser',    // pursues player when in range

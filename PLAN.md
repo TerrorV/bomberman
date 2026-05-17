@@ -3,7 +3,7 @@
 ## Status
 **Fully playable.** All core systems implemented, polished with sound, particles, timer, HUD, start screen.
 
-**Last commit:** `31aff6d` - Enemy types (Chaser + Drifter) + PLAN/TODO cleanup
+**Last commit:** `68f0373` - Complete level transition screen + auto-advance to next level
 
 ## Core Files
 ```
@@ -57,14 +57,15 @@ bomberman/
 - Roamer (red, speed 1.5, unchanged): wanders randomly with 5% chance to change direction
 - Visual differentiation via type-specific colors ✅
 
-### 2️⃣ Lives System
+### 2️⃣ Lives System ✅ DONE
 - Start with 3 lives
 - On death: lose life, respawn, or game over at 0
 - Display lives in HUD
 
-### 3️⃣ Multiple Levels
+### 3️⃣ Multiple Levels ✅ DONE
 - Level 1: current map
 - Level 2+: procedural generation with more enemies/difficulty
+- Level transition screen with score summary + countdown auto-advance
 
 ### 4️⃣ Mobile Touch Controls
 - Virtual D-pad + bomb button overlay
@@ -81,6 +82,8 @@ bomberman/
   - Extract **game state / level management** to `js/level.js` (lives, level transitions, procedural gen)
   - Game.js should stay thin - loop + state machine + delegate to subsystems
   - Keep `config.js`, `map.js`, `player.js`, `bombs.js`, `enemy.js`, `input.js` as-is
-- [ ] Lives system (3 lives, HUD display)
-- [ ] Procedural map generation for levels 2+
-- [ ] Mobile touch controls
+- [ ] **🟡 Medium prio - Mobile touch controls** (big UX win for mobile play)
+  - Virtual D-pad (4 directional buttons)
+  - Bomb button
+  - Responsive canvas sizing
+- [ ] Polish: power-up timer display in HUD (fire/bomb/speed countdowns)

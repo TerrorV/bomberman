@@ -47,8 +47,18 @@ class Game {
     this.lives = CONFIG.MAX_LIVES;
     this.gameState = 'playing';
 
-    // Spawn enemies
-    this.enemies = CONFIG.ENEMY_SPAWNS.map(spawn => new Enemy(CONFIG, spawn.x, spawn.y, spawn.type));
+    // Spawn enemies (scale with level)
+    const count = Math.min(
+      CONFIG.ENEMY_COUNT + (this.level - 1) * CONFIG.ENEMY_ADD_PER_LEVEL,
+      CONFIG.MAX_ENEMY_COUNT
+    );
+    this.enemies = [];
+    const types = Object.values(CONFIG.ENEMY_TYPES);
+    for (let i = 0; i < count; i++) {
+      const spawn = CONFIG.ENEMY_SPAWNS[i % CONFIG.ENEMY_SPAWNS.length];
+      const type = i < types.length ? types[i] : types[Math.floor(Math.random() * types.length)];
+      this.enemies.push(new Enemy(CONFIG, spawn.x, spawn.y, type));
+    }
 
     // Clear arrays
     this.bombs = [];
