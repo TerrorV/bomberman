@@ -56,6 +56,22 @@ class Level {
     return fireCells;
   }
 
+  // Kill enemies hit by any explosion
+  killEnemiesInExplosions(currentExplosions, newExplosions) {
+    const allExp = [...currentExplosions, ...newExplosions];
+    for (const exp of allExp) {
+      for (const cell of exp.fireCells) {
+        for (const enemy of this.game.enemies) {
+          if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {
+            enemy.alive = false;
+            this.game.score += 100;
+            soundFX.kill();
+          }
+        }
+      }
+    }
+  }
+
   // Handle player collision with enemy
   checkEnemyCollision(enemy) {
     if (this.game.player.invincible > 0) return;

@@ -323,26 +323,13 @@ class Game {
     this.explosions = this.explosions.filter(exp => exp.update(dt));
 
     // 5b. Kill enemies hit by explosions
-    for (const exp of this.explosions) {
-      for (const cell of exp.fireCells) {
-        for (const enemy of this.enemies) {
-          if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {
-            enemy.alive = false;
-            this.score += 100;
-            soundFX.kill();
-          }
-        }
-      }
-    }
+    this.levelSystem.killEnemiesInExplosions(this.explosions, this.newExplosions || newExplosions);
+    // Merge new explosions (only once)
+    const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
     for (const exp of newExplosions) {
-      for (const cell of exp.fireCells) {
-        for (const enemy of this.enemies) {
-          if (enemy.alive && enemy.gridX === cell.x && enemy.gridY === cell.y) {
-            enemy.alive = false;
-            this.score += 100;
-            soundFX.kill();
-          }
-        }
+      const key = exp.fireCells.map(c => `${c.x},${c.y}`).join('-');
+      if (!existingKeys.has(key)) {
+        this.explosions.push(exp);
       }
     }
 
