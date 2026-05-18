@@ -25,7 +25,7 @@ class UI {
     const statsY = 16;
     let statsX = this.canvas.width - 16;
     let statsArr = [
-      `🔥 ${state.player.fireRange}`,
+      `🔥 ${state.player.fireRange}/${CONFIG.FIRE_RANGE_MAX}`,
       `💣 ${state.player.bombsPlaced}/${state.player.bombCount}`,
     ];
     if (state.player.speedBoostTimer > 0) {
