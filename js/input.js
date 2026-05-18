@@ -17,6 +17,7 @@ class Input {
 
   isDown(code) { return !!this.keys[code]; }
   isPressed(code) { return !!this.keys[code] && !this.prevKeys[code]; }
+  setKey(code, value) { this.keys[code] = value; }
   update() { this.prevKeys = { ...this.keys }; }
 
   get moveDir() {

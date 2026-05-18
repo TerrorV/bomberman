@@ -25,3 +25,95 @@ html, body {
   border: 2px solid #333;
   border-radius: 4px;
 }
+
+/* Touch overlay — mobile controls */
+#touch-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  display: none;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 10px 20px 30px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Show touch controls only on touch devices */
+.touch-device #touch-overlay {
+  display: flex;
+}
+
+.touch-dpad {
+  display: grid;
+  grid-template-columns: 60px 60px 60px;
+  grid-template-rows: 60px 60px;
+  gap: 4px;
+}
+
+.touch-bomb {
+  display: flex;
+  align-items: flex-end;
+}
+
+.dpad-btn,
+.bomb-btn {
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.8);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dpad-btn:active,
+.bomb-btn:active {
+  background: rgba(255,255,255,0.35);
+  border-color: rgba(255,255,255,0.6);
+}
+
+/* D-pad grid positioning */
+.dpad-btn.up    { grid-column: 2; grid-row: 1; }
+.dpad-btn.left   { grid-column: 1; grid-row: 2; }
+.dpad-btn.down   { grid-column: 2; grid-row: 2; }
+.dpad-btn.right  { grid-column: 3; grid-row: 2; }
+
+/* Bomb button — big round */
+.bomb-btn {
+  width: 70px;
+  height: 70px;
+  font-size: 30px;
+  border-radius: 50%;
+}
+
+/* Mobile sizing */
+@media (max-width: 768px) {
+  .dpad-btn,
+  .bomb-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+  }
+  .bomb-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 26px;
+  }
+  .touch-dpad {
+    grid-template-columns: 50px 50px 50px;
+    grid-template-rows: 50px 50px;
+  }
+}

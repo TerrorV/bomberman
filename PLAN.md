@@ -1,9 +1,9 @@
 # Bomberman - Classic Game
 
 ## Status
-**Fully playable.** All core systems implemented, polished with sound, particles, timer, HUD, start screen.
+**Fully playable.** All core gameplay systems working. Multi-level, 3 enemy types, power-ups, HUD, timer, touch-ready (in progress).
 
-**Last commit:** `68f0373` - Complete level transition screen + auto-advance to next level
+**Last commit:** `1e8fe71` - fix: dedup enemy kill logic + add killEnemiesInExplosions helper
 
 ## Core Files
 ```
@@ -12,78 +12,46 @@ bomberman/
 ├── css/style.css       # Dark centered layout
 ├── js/config.js        # All constants (grid, colors, powerups, timer, spawns)
 ├── js/map.js           # MapSystem: grid, isWall/isBlock/isEmpty/destroyBlock, render
-├── js/player.js        # Player: move, placeBomb, applyPowerup, render (animated)
-├── js/bombs.js         # Bomb: timer, pulse, explode; Explosion: 0.5s fade + render
-├── js/enemy.js         # Enemy: roam, tryMove, render
-├── js/powerup.js       # PowerUp: floating animation, collidesWith, render
-├── js/sound.js         # Web Audio API synth sounds (place/explosion/powerup/kill/death)
+├── js/player.js        # Player: move, placeBomb, applyPowerup, render
+├── js/bombs.js         # Bomb + Explosion (timer, pulse, explode, fade)
+├── js/enemy.js         # Enemy: Chaser/Drifter/Roamer types
+├── js/powerup.js       # PowerUp: floating, collidesWith, render
+├── js/sound.js         # Web Audio API synth sounds
 ├── js/particles.js     # ParticleSystem: burst, update, render
-├── js/input.js         # Input: keyboard tracking, moveDir
-└── js/game.js          # Game: loop, state machine, HUD, timer, death anim, high score
+├── js/input.js         # Keyboard handling
+├── js/ui.js            # HUD, start screen, game over/win overlays
+├── js/timer.js         # Timer countdown + win check
+├── js/level.js         # Lives, death/respawn, high score, level progression
+├── js/powerup-system.js # Powerup spawn from explosions + pickup
+├── js/touch-controls.js # Virtual D-pad + bomb button (WIP)
+└── js/game.js          # Game loop + state machine
 ```
 
-## Current Features ✅
-- Classic 15×13 grid with indestructible walls + destructible bricks
+## Done ✅
+- 15×13 grid (walls + destructible bricks)
 - Player movement (WASD/Arrows), bomb placement (Space, 150ms cooldown)
-- 4 bomb slots max, 2 starting
-- Explosion with configurable range (2 base), stops at walls/bombs
-- Block destruction with 30% power-up spawn chance
-- 3 power-ups: 🔥 fire range (max 6), 💣 bomb count (max 4), ⚡ speed boost
-- HUD: score, fire range, bombs, speed timer, enemy count, countdown timer
-- 5 synthetic sounds via Web Audio API
-- Particle burst effects on explosions
-- Animated player (feet animation, eye tracking)
-- Start screen, win/gameover screens, high score (localStorage)
-- 5-minute countdown timer with red urgency when \u003c 30s
-- Death explosion animation
+- 4 bomb slots, 2 starting. Explosion range (2 base, up to 6 with powerup)
+- Block destruction, 30% power-up spawn chance
+- 3 power-ups: 🔥 fire range, 💣 bomb count, ⚡ speed
+- 3 enemy types: Chaser (orange, speed 2.0), Drifter (purple, speed 1.0), Roamer (red, speed 1.5)
+- Lives (3), respawns with invincibility
+- 5 levels with procedural map gen (density scales per level)
+- Level transition screen + auto-advance
+- HUD: score, fire range, bombs, speed timer, enemy count, lives, countdown
+- Synthetic sounds (place/explosion/powerup/kill/death)
+- Particle effects on explosions
+- Timer countdown (5 min, red urgency <30s)
+- Start screen, win/gameover, high score (localStorage)
+- Refactored game.js into subsystem files
 
-## Bug List (from PLAN.md review)
+## Known Issues
+| # | Issue | Status |
+|---|---|---|
+| B15 | Enemies can phase through placed bombs | ⚠️ Low pri, skip for now |
+| — | game.js still 408 lines | 🟡 Could refactor further |
 
-| # | Issue | Status | Priority |
-|---|-------|--------|----------|
-| B14 | Enemy move timers synced | ✅ Fixed (random offset in Enemy ctor) | Low |
-| B15 | Enemies phase through bombs | ⚠️ Partially fixed - player sees destroyed blocks, but enemy `tryMove()` still ignores bomb cells | Low |
-| B16 | Explosions pass through bombs silently | ✅ Fixed (BOMB_CHECK wired in game.js step 3) | Low |
-| C1 | Fire range power-up does nothing | ✅ Fixed (`fireRange` passed to `explode()` in game.js step 3) | Was Critical |
-| C2 | Explosions can't destroy blocks | ✅ Fixed (`destroyBlock` + powerup spawn in game.js step 4) | Was Critical |
-| D1 | Enemies are never killed by explosions | ✅ Fixed (`enemy.alive = false` in game.js step 5b) | Was High |
-| D9 | Map layout: static, no structure | ✅ Fixed (procedural gen with maze walls + density per level) | Was High |
-
-## Next Features (in priority order)
-
-### 1️⃣ Multiple Enemy Types ✅ DONE
-- Chaser (orange, speed 2.0): moves every 0.2s, chases player via Manhattan distance minimization when in detection range
-- Drifter (purple, speed 1.0): moves straight, bounces off walls, keeps current direction until blocked
-- Roamer (red, speed 1.5, unchanged): wanders randomly with 5% chance to change direction
-- Visual differentiation via type-specific colors ✅
-
-### 2️⃣ Lives System ✅ DONE
-- Start with 3 lives
-- On death: lose life, respawn, or game over at 0
-- Display lives in HUD
-
-### 3️⃣ Multiple Levels ✅ DONE
-- Level 1: current map
-- Level 2+: procedural generation with more enemies/difficulty
-- Level transition screen with score summary + countdown auto-advance
-
-### 4️⃣ Mobile Touch Controls
-- Virtual D-pad + bomb button overlay
-- Responsive canvas sizing
-
-### 5️⃣ Level Transition Screen
-- Between levels: show level number, brief pause, then countdown
-
-## TODO
-- [ ] **🔴 High prio - Refactor game.js: extract subsystems** (size & complexity reduction)
-  - Extract **power-up** logic to `js/powerup-system.js` (spawning, application, inventory)
-  - Extract **UI/HUD** rendering to `js/ui.js` (start screen, HUD, win/gameover overlays)
-  - Extract **timer** management to `js/timer.js` (countdown, urgency, level timer)
-  - Extract **game state / level management** to `js/level.js` (lives, level transitions, procedural gen)
-  - Game.js should stay thin - loop + state machine + delegate to subsystems
-  - Keep `config.js`, `map.js`, `player.js`, `bombs.js`, `enemy.js`, `input.js` as-is
-- [ ] **🟡 Medium prio - Mobile touch controls** (big UX win for mobile play)
-  - Virtual D-pad (4 directional buttons)
-  - Bomb button
-  - Responsive canvas sizing
-- [ ] Polish: power-up timer display in HUD (fire/bomb/speed countdowns)
+## Next Up
+- [ ] **Mobile touch controls** (in progress) — virtual D-pad + bomb button overlay
+- [ ] Responsive canvas sizing for mobile
+- [ ] Power-up countdown display in HUD (fire/bomb/speed timers)
+- [ ] More polish: bomb count display in HUD, power-up pickup animation

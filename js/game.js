@@ -25,9 +25,24 @@ class Game {
     this.powerupSystem = new PowerUpSystem(this);
     this.timer = new Timer(this);
     this.levelSystem = new Level(this);
+    this.touchControls = null;
     this._levelTimer = 0;
     this._levelTransitionStep = 0; // 0=show level, 1=countdown, 2=done
     this._levelTransitionScore = 0;
+    this._detectTouch();
+  }
+
+  _detectTouch() {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      document.body.classList.add('touch-device');
+      this.touchControls = new TouchControls(this, this.ctx.canvas);
+    }
+  }
+
+  _initTouch() {
+    if (this.touchControls && !this.touchControls.isShowing()) {
+      this.touchControls.show();
+    }
   }
 
   start() {
@@ -64,6 +79,9 @@ class Game {
     this.bombs = [];
     this.explosions = [];
     this.powerups = [];
+
+    // Show touch controls on mobile
+    this._initTouch();
   }
 
   gameOver() {
