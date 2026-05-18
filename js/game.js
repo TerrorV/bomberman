@@ -403,12 +403,29 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 }
 
+function resizeCanvas(canvas) {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const hudPad = 80; // HUD + bottom space
+  const cs = CONFIG.CELL_SIZE;
+  const gw = cs * CONFIG.COLS;
+  const gh = cs * CONFIG.ROWS;
+  const scale = Math.min((vw - 16) / gw, (vh - hudPad - 16) / gh);
+  const w = Math.floor(gw * Math.min(scale, 1));
+  const h = Math.floor(gh * Math.min(scale, 1));
+  canvas.width = w;
+  canvas.height = h;
+}
+
 function init() {
   const canvas = document.getElementById('gameCanvas');
   game = new Game(canvas);
   game.start();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
+
+  resizeCanvas(canvas);
+  window.addEventListener('resize', () => resizeCanvas(canvas));
 }
 
 window.addEventListener('DOMContentLoaded', init);
