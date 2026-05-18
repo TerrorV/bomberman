@@ -36,6 +36,26 @@ class PowerUpSystem {
       if (pu.collidesWith(this.game.player.x, this.game.player.y, CONFIG)) {
         this.game.player.applyPowerup(pu.type);
         soundFX.powerUp();
+        // Sparkle burst at pickup position
+        const cs = CONFIG.CELL_SIZE;
+        const px = (pu.x + 0.5) * cs;
+        const py = (pu.y + 0.5) * cs;
+        const colors = {
+          fire: ['#ff6348','#ff4757','#ffdd59'],
+          bomb: ['#3742fa','#5352ed','#7066ff'],
+          speed: ['#00d2d3','#0abde3','#48dbfb'],
+        };
+        for (let j = 0; j < 12; j++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 60 + Math.random() * 100;
+          this.game.particles.list.push(new Particle(
+            pu.x + 0.5, pu.y + 0.5,
+            Math.cos(angle) * speed, Math.sin(angle) * speed,
+            colors[pu.type][Math.floor(Math.random() * 3)],
+            2 + Math.random() * 3,
+            0.2 + Math.random() * 0.2
+          ));
+        }
         this.game.powerups.splice(i, 1);
       }
     }
