@@ -1,31 +1,28 @@
 # Bomberman - Classic Game
 
 ## Status
-**Fully playable.** All core gameplay systems working. Multi-level, 3 enemy types, power-ups, HUD, timer, touch-ready (in progress).
+**Fully playable.** Multi-level, 3 enemy types, power-ups, HUD, timer, touch controls, responsive canvas.
 
-**Last commit:** `1e8fe71` - fix: dedup enemy kill logic + add killEnemiesInExplosions helper
+**Last commit:** `1376258` - power-up pickup sparkle burst animation
 
-## Core Files
-```
-bomberman/
-├── index.html          # Canvas + script imports
-├── css/style.css       # Dark centered layout
-├── js/config.js        # All constants (grid, colors, powerups, timer, spawns)
-├── js/map.js           # MapSystem: grid, isWall/isBlock/isEmpty/destroyBlock, render
-├── js/player.js        # Player: move, placeBomb, applyPowerup, render
-├── js/bombs.js         # Bomb + Explosion (timer, pulse, explode, fade)
-├── js/enemy.js         # Enemy: Chaser/Drifter/Roamer types
-├── js/powerup.js       # PowerUp: floating, collidesWith, render
-├── js/sound.js         # Web Audio API synth sounds
-├── js/particles.js     # ParticleSystem: burst, update, render
-├── js/input.js         # Keyboard handling
-├── js/ui.js            # HUD, start screen, game over/win overlays
-├── js/timer.js         # Timer countdown + win check
-├── js/level.js         # Lives, death/respawn, high score, level progression
-├── js/powerup-system.js # Powerup spawn from explosions + pickup
-├── js/touch-controls.js # Virtual D-pad + bomb button (WIP)
-└── js/game.js          # Game loop + state machine
-```
+## File sizes
+| File | Lines |
+|---|---|
+| js/game.js | **430** (needs split) |
+| js/enemy.js | 181 |
+| js/player.js | 188 |
+| js/ui.js | 134 |
+| js/bombs.js | 142 |
+| js/map.js | 125 |
+| js/config.js | 76 |
+| js/level.js | 87 |
+| js/input.js | 31 |
+| js/powerup.js | 55 |
+| js/powerup-system.js | 63 |
+| js/particles.js | 56 |
+| js/sound.js | 56 |
+| js/timer.js | 25 |
+| js/touch-controls.js | 71 |
 
 ## Done ✅
 - 15×13 grid (walls + destructible bricks)
@@ -33,7 +30,7 @@ bomberman/
 - 4 bomb slots, 2 starting. Explosion range (2 base, up to 6 with powerup)
 - Block destruction, 30% power-up spawn chance
 - 3 power-ups: 🔥 fire range, 💣 bomb count, ⚡ speed
-- 3 enemy types: Chaser (orange, speed 2.0), Drifter (purple, speed 1.0), Roamer (red, speed 1.5)
+- 3 enemy types: Chaser (orange), Drifter (purple), Roamer (red)
 - Lives (3), respawns with invincibility
 - 5 levels with procedural map gen (density scales per level)
 - Level transition screen + auto-advance
@@ -43,15 +40,19 @@ bomberman/
 - Timer countdown (5 min, red urgency <30s)
 - Start screen, win/gameover, high score (localStorage)
 - Refactored game.js into subsystem files
+- Mobile touch controls (virtual D-pad + bomb button)
+- Responsive canvas sizing
+- Power-up pickup sparkle animation
 
 ## Known Issues
 | # | Issue | Status |
 |---|---|---|
-| B15 | Enemies can phase through placed bombs | ⚠️ Low pri, skip for now |
-| — | game.js still 408 lines | 🟡 Could refactor further |
+| B15 | Enemies can phase through placed bombs | ⚠️ Low pri, skip |
+| — | game.js still 430 lines | 🔴 Split needed |
 
 ## Next Up
-- [ ] **Mobile touch controls** (in progress) — virtual D-pad + bomb button overlay
-- [ ] Responsive canvas sizing for mobile
-- [ ] Power-up countdown display in HUD (fire/bomb/speed timers)
-- [ ] More polish: bomb count display in HUD, power-up pickup animation
+- [ ] **Update TODO.md** — align with actual codebase
+- [ ] **Extract game.js sub-classes** (e.g. LevelTransitionOverlay, GameStateManager)
+- [ ] **Level 5 completion screen** — show final score + restart option (currently just loops back)
+- [ ] **Bomb count in HUD** — show current/max
+- [ ] **Polish pass** — any remaining QoL from player feedback

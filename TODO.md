@@ -1,55 +1,58 @@
 # Bomberman Clone - TODO
 
-## ✅ Core (doing now)
+## ✅ Core (DONE)
 - [x] Project scaffold + config
 - [x] Map generation (walls + destructible blocks)
 - [x] Player movement (WASD/arrows)
-- [x] Bomb placement (space) with countdown + cooldown
+- [x] Bomb placement (space) with cooldown
 - [x] Explosions (cross pattern, wall stopping)
 - [x] Player-enemy collision (game over)
 - [x] Enemy roaming AI
-- [x] Power-ups: 🔥 fire range, 💣 bomb count
+- [x] Power-ups: 🔥 fire range, 💣 bomb count, ⚡ speed
 - [x] Win condition (kill all enemies)
-- [x] Game states (play, game over, win)
-- [x] HUD overlay (score, fire range, bomb count, enemies alive)
+- [x] Game states (play, game over, win, dying, levelwin, start)
+- [x] HUD overlay (score, fire range, bombs, speed timer, enemy count, lives, countdown)
 - [x] Start screen/menu
 - [x] Death explosion animation
-- [x] Core bugs fixed (B1-B8)
-## 🔊 Sound (in progress)
-- [x] Sound effects (place, explosion, power-up, death)
+- [x] Lives system (3 lives, respawn w/ invincibility)
+- [x] Multiple levels (5, procedural map density scales)
+- [x] Level transition screen + auto-advance
+- [x] Timer countdown (5 min, red urgency <30s)
+- [x] Sound effects (place, explosion, powerup, kill, death)
+- [x] Particle effects (explosion bursts, power-up pickup)
+- [x] High score (localStorage)
+- [x] All core bugs fixed
+
+## ✅ Mobile
+- [x] Touch D-pad + bomb button overlay
+- [x] Responsive canvas sizing
+- [x] Power-up pickup sparkle animation
+
+## 🔊 Sound (DONE)
+- [x] All SFX via Web Audio API synth
+
 ## 👾 Enemy Types (DONE)
-- [x] Roamer (red, speed 1.5): wanders randomly
-- [x] Chaser (orange, speed 2.0): chases player when in detection range
-- [x] Drifter (purple, speed 1.0): straight-line bouncer
+- [x] Roamer, Chaser, Drifter
 - [x] Spawn types wired from config
 - [x] Type-specific move intervals
 - [x] Visual differentiation via ENEMY_COLORS
+- [x] Enemy count scales per level
 
-## 🔍 BotLee Code Review Findings (2026-05-11 — needs relevance check)
-- [ ] **B1 — Dead BOMB_CHECK path**: `bomb.explode(CONFIG)` never passes BOMB_CHECK/BLOCK_CHECK callbacks. BOMB_CHECK in bombs.js:38 is dead code. Currently correct behavior (explosions pass through bombs per classic rules), but the dead code path is misleading. Decide: wire it up properly or remove the dead branch.
-- [ ] **B2 — Enemies don't avoid bombs**: `Enemy.tryMove()` → `map.isWalkable()` ignores bombs. Enemies walk through player bombs, breaking immersion and predictability. Fix: add bomb awareness to enemy movement path check.
-- [ ] **B3 — Power-up collision offset**: `collidesWith` compares player top-left vs cell center. Off by cs/2. Usually works at small cell sizes but would break with larger cells or different hitboxes. Consider: pass player center coordinates or fix the comparison.
-- [ ] **B4 — Player movement radius**: BotLee self-corrected — no bug, just confusing naming. ✅ Skip.
-- [ ] **B5**: Truncated in original review — needs to find the full finding.
+## 🗺️ Map Layout (DONE)
+- [x] Indestructible wall bounds at (1,1)
+- [x] Outermost row/col destructible (classic style)
 
-> ⚠️ **TODO: Check all findings against current code state** — BotLee's review was done at an earlier commit; some issues may have been fixed already or may not be relevant to the current implementation.
+## 🔴 Known Issues
+- [ ] **BOMB_CHECK dead code** — `bomb.explode(CONFIG)` never passes BOMB_CHECK callback. Currently correct behavior (explosions pass through bombs), but dead code path misleading. Fix or remove.
+- [ ] **game.js 430 lines** — split into smaller subsystem files
+- [ ] **B15: Enemies phase through placed bombs** — enemy movement ignores bomb cells
 
-## 🎨 Extras (later)
-- [x] Particle effects wired up (burstAt→burst fix) ✅
-- [x] Explosion outer glow effect ✅
-- [x] Multiple enemy types: Roamer (red), Chaser (orange, faster, pursues player), Drifter (purple, straight-line bouncer)
-- [x] Speed boost power-up ⚡ (DONE)
-- [ ] Lives system
-- [ ] Multiple levels / procedurally generated maps
-- [ ] Mobile touch controls
-
-## 🐛 Bug Fixes
-- [ ] **Player gets stuck on bombs** — collision checks don't account for bomb cells; player slides into and sticks on placed bombs (up/down/left movement)
-
-## 🗺️ Map Layout
-- [ ] **Indestructible wall bounds** — outermost row/col should be destructible/blocks, indestructible blocks should start from grid (1,1) instead of (0,0)
-
-## 🌐 Deployment
-- [ ] **Azure Static Web Apps** — host the game on Azure Static Web Pages
-  - Requires: GitHub repo → Azure deployment pipeline
-  - Goal: live URL anyone can play
+## 📋 Next
+- [ ] Update PLAN.md to actual state
+- [ ] Extract game.js sub-classes (LevelTransitionOverlay, GameStateManager)
+- [ ] **Level 5 completion screen** — final score + restart option
+- [ ] **Bomb count in HUD** — show current/max
+- [ ] Bomb count display in HUD
+- [ ] **Deploy to Azure Static Web Apps** — live URL
+- [ ] **Azure Static Web Apps** — GitHub repo → Azure deployment pipeline
+- [ ] Playtest + polish pass
