@@ -334,7 +334,7 @@ class Game {
     // Delegate powerup spawning
     this.powerupSystem.spawnFromExplosions(newExplosions);
 
-    // Merge new explosions (only once)
+    // Merge new explosions (once)
     const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
     for (const exp of newExplosions) {
       const key = exp.fireCells.map(c => `${c.x},${c.y}`).join('-');
@@ -343,19 +343,11 @@ class Game {
       }
     }
 
-    // 5. Update explosions
+    // Update explosions
     this.explosions = this.explosions.filter(exp => exp.update(dt));
 
-    // 5b. Kill enemies hit by explosions
-    this.levelSystem.killEnemiesInExplosions(this.explosions, this.newExplosions || newExplosions);
-    // Merge new explosions (only once)
-    const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
-    for (const exp of newExplosions) {
-      const key = exp.fireCells.map(c => `${c.x},${c.y}`).join('-');
-      if (!existingKeys.has(key)) {
-        this.explosions.push(exp);
-      }
-    }
+    // Kill enemies hit by explosions
+    this.levelSystem.killEnemiesInExplosions(this.explosions, newExplosions);
 
     // 6. Update enemies
     for (const enemy of this.enemies) {
