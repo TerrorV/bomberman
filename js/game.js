@@ -211,6 +211,7 @@ class Game {
       playing: 'playing',
       gameover: 'gameover',
       win: 'win',
+      finalWin: 'finalWin',
       start: 'start',
       dying: 'dying',
     };
@@ -246,10 +247,15 @@ class Game {
     }
 
     // Restart on R after game ends
-    if ((this.gameState === state.gameover || this.gameState === state.win) && this.input.isPressed('KeyR')) {
+    if ((this.gameState === state.gameover || this.gameState === state.finalWin) && this.input.isPressed('KeyR')) {
       this._checkHighScore();
-      this.restart();
-      this.gameState = state.playing;
+      this.start();
+    }
+
+    // Restart on Enter after game complete
+    if (this.gameState === 'finalWin' && this.input.isPressed('Enter')) {
+      this._checkHighScore();
+      this.start();
     }
 
     // Level transition countdown

@@ -75,6 +75,10 @@ class UI {
 
   // --- Game over / win text ---
   renderStateText(state) {
+    if (state.gameState === 'finalWin') {
+      this.renderGameComplete(state);
+      return;
+    }
     if (state.gameState !== 'gameover' && state.gameState !== 'win') return;
     const ctx = this.ctx;
     const canvas = this.canvas;
@@ -84,6 +88,48 @@ class UI {
     ctx.textBaseline = 'middle';
     ctx.fillText(state.gameState === 'gameover' ? 'GAME OVER' : 'YOU WIN!', canvas.width / 2, canvas.height / 2);
     this.renderHighScore(state);
+  }
+
+  // --- Game complete (all levels cleared) ---
+  renderGameComplete(state) {
+    const ctx = this.ctx;
+    const canvas = this.canvas;
+    const w = canvas.width / 2;
+    const h = canvas.height / 2;
+
+    // Dark overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Title
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 52px Segoe UI, Arial';
+    ctx.fillText('🏆 GAME COMPLETE! 🏆', w, h - 100);
+
+    // Final score
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px Segoe UI, Arial';
+    ctx.fillText(`Final Score: ${state.score}`, w, h - 30);
+
+    // High score
+    ctx.fillStyle = '#2ecc71';
+    ctx.font = '24px Segoe UI, Arial';
+    const isNew = state.score >= state.highScore;
+    if (isNew) {
+      ctx.fillText('⭐ NEW HIGH SCORE! ⭐', w, h + 20);
+    } else {
+      ctx.fillText(`High Score: ${state.highScore}`, w, h + 20);
+    }
+
+    // Restart prompt
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = '20px Segoe UI, Arial';
+    if (Math.floor(Date.now() / 600) % 2) {
+      ctx.fillText('Press ENTER to play again', w, h + 75);
+    }
   }
 
   // --- Level transition ---
