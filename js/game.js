@@ -296,14 +296,11 @@ class Game {
 
     // 3. Update bombs
     const newExplosions = [];
-    const bombsBefore = this.bombs.slice(); // snapshot for BOMB_CHECK
     this.bombs = this.bombs.filter(bomb => {
       if (bomb.update(dt)) {
-        // Pass wall/block/bomb checks to explosion logic
         const fireCells = bomb.explode(CONFIG, this.player.fireRange, {
           WALL_CHECK: (x, y) => this.mapSystem.isWall(x, y),
           BLOCK_CHECK: (x, y) => this.mapSystem.isBlock(x, y),
-          BOMB_CHECK: (x, y) => { return bombsBefore.some(b => b.gridX === x && b.gridY === y); },
         });
         newExplosions.push(new Explosion(fireCells, CONFIG));
         // Spawn particles for each fire cell

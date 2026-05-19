@@ -29,14 +29,13 @@ class Bomb {
         // Stop at walls
         if (config.WALL_CHECK && config.WALL_CHECK(x, y)) break;
 
-        // Continue through blocks (they get destroyed)
+        // Stop at blocks (destroy and stop)
         if (config.BLOCK_CHECK && config.BLOCK_CHECK(x, y)) {
           result.push({ x, y, type: 'destroyed' });
           break;
         }
 
-        // Stop at other bombs (they won't chain)
-        if (config.BOMB_CHECK && config.BOMB_CHECK(x, y)) break;
+        // Classic Bomberman: explosions pass through bombs (no chain reaction)
       }
     }
     // Add the bomb cell itself
