@@ -26,10 +26,10 @@ class Game {
     this.timer = new Timer(this);
     this.levelSystem = new Level(this);
     this.touchControls = null;
+    this.stateManager = new GameStateManager(this);
     this._levelTimer = 0;
-    this._levelTransitionStep = 0; // 0=show level, 1=countdown, 2=done
+    this._levelTransitionStep = 0;
     this._levelTransitionScore = 0;
-    this._detectTouch();
   }
 
   _detectTouch() {
@@ -45,84 +45,11 @@ class Game {
     }
   }
 
-  start() {
-    // Init audio on first user interaction
-    soundFX.init();
-
-    // Generate map
-    this.mapSystem = MapSystem.create(CONFIG);
-
-    // Reset player
-    this.player = new Player(CONFIG);
-
-    // Reset score and state
-    this.score = 0;
-    this.bombCooldown = 0;
-    this.timeLeft = CONFIG.GAME_TIME;
-    this.lives = CONFIG.MAX_LIVES;
-    this.gameState = 'playing';
-
-    // Spawn enemies (scale with level)
-    const count = Math.min(
-      CONFIG.ENEMY_COUNT + (this.level - 1) * CONFIG.ENEMY_ADD_PER_LEVEL,
-      CONFIG.MAX_ENEMY_COUNT
-    );
-    this.enemies = [];
-    const types = Object.values(CONFIG.ENEMY_TYPES);
-    for (let i = 0; i < count; i++) {
-      const spawn = CONFIG.ENEMY_SPAWNS[i % CONFIG.ENEMY_SPAWNS.length];
-      const type = i < types.length ? types[i] : types[Math.floor(Math.random() * types.length)];
-      this.enemies.push(new Enemy(CONFIG, spawn.x, spawn.y, type));
-    }
-
-    // Clear arrays
-    this.bombs = [];
-    this.explosions = [];
-    this.powerups = [];
-
-    // Show touch controls on mobile
-    this._initTouch();
-  }
-
-  gameOver() {
-    this.gameState = 'gameover';
-  }
-
-  win() {
-    if (this.level >= CONFIG.MAX_LEVEL) {
-      this.gameState = 'gameover';
-      return;
-    }
-    // Show level transition
-    this._levelTransitionScore = this.score;
-    this._levelTimer = CONFIG.LEVEL_TRANSITION_COUNTDOWN;
-    this._levelTransitionStep = 1; // countdown phase
-    this.gameState = 'levelwin';
-  }
-
-  restart() {
-    // Check high score before resetting
-    this._checkHighScore();
-    this.start();
-  }
-
-  respawn() {
-    this.lives--;
-    if (this.lives <= 0) {
-      this.gameState = 'gameover';
-      return;
-    }
-    // Clear bombs/explosions near player
-    this.bombs = this.bombs.filter(b => {
-      const d = Math.abs(b.gridX - this.player.gridX) + Math.abs(b.gridY - this.player.gridY);
-      return d > 2;
-    });
-    this.explosions = [];
-    // Respawn player at start
-    this.player.reset();
-    this.player.invincible = 3; // 3s invincibility
-    this.gameState = 'playing';
-  }
+  start() { this.stateManager.start(); }
+  gameOver() { this.stateManager.gameOver(); }
+  win() { this.stateManager.win(); }
+  restart() { this.stateManager.restart(); }
+  respawn() { this.stateManager.respawn(); }
 
   _getGridOffset() {
     const cs = CONFIG.CELL_SIZE;
@@ -207,67 +134,41 @@ class Game {
   }
 
   update(dt) {
-    const state = {
-      playing: 'playing',
-      gameover: 'gameover',
-      win: 'win',
-      finalWin: 'finalWin',
-      start: 'start',
-      dying: 'dying',
-    };
-
-    // Start screen: Enter to begin
-    if (this.gameState === state.start) {
-      this.input.update();
-      if (this.input.isPressed('Enter')) {
-        this.start();
-        this.gameState = state.playing;
-      }
-      return;
-    }
-
-    if (this.gameState === state.playing) {
+    if (this.gameState === 'playing') {
       this._updatePlaying(dt);
     }
-
-    // Update particles every frame
     this.particles.update(dt);
-
-    // Death animation
-    if (this.gameState === state.dying) {
+    if (this.gameState === 'dying') {
       this.deathAnimTimer -= dt;
-      // Update explosions during death anim
       this.explosions = this.explosions.filter(e => e.update(dt));
-      // Draw death explosions
       const { cs, cx, cy } = this._getGridOffset();
       this.explosions.forEach(e => e.render(this.ctx, cx, cy, CONFIG));
       if (this.deathAnimTimer <= 0) {
         this._handlePlayerDeath();
       }
     }
-
-    // Restart on R after game ends
-    if ((this.gameState === state.gameover || this.gameState === state.finalWin) && this.input.isPressed('KeyR')) {
+    // Restart on R
+    if ((this.gameState === 'gameover' || this.gameState === 'finalWin') && this.input.isPressed('KeyR')) {
       this._checkHighScore();
       this.start();
     }
-
-    // Restart on Enter after game complete
     if (this.gameState === 'finalWin' && this.input.isPressed('Enter')) {
       this._checkHighScore();
       this.start();
     }
-
     // Level transition countdown
     if (this.gameState === 'levelwin') {
       this._levelTimer -= dt;
       if (this._levelTimer <= 0) {
-        // Advance to next level
         this.level++;
         this.start();
       }
     }
-
+    if (this.gameState === 'start') {
+      this.input.update();
+      if (this.input.isPressed('Enter')) { this.start(); this.gameState = 'playing'; }
+      return;
+    }
     this.input.update();
   }
 
