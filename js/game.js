@@ -20,11 +20,11 @@ class Game {
     this.deathAnimTimer = 0;
     this.timeLeft = CONFIG.GAME_TIME;
     this.lives = CONFIG.MAX_LIVES;
-    this.highScore = this._loadHighScore();
     this.particles = new ParticleSystem();
     this.powerupSystem = new PowerUpSystem(this);
     this.timer = new Timer(this);
     this.levelSystem = new Level(this);
+    this.highScore = this._loadHighScore();
     this.touchControls = null;
     this.stateManager = new GameStateManager(this);
     this._levelTimer = 0;

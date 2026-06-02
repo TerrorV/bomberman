@@ -43,16 +43,16 @@
 - [x] Outermost row/col destructible (classic style)
 
 ## 🔴 Known Issues
-- [ ] **BOMB_CHECK dead code** — `bomb.explode(CONFIG)` never passes BOMB_CHECK callback. Currently correct behavior (explosions pass through bombs), but dead code path misleading. Fix or remove.
+
 - [ ] **game.js 430 lines** — split into smaller subsystem files
 - [ ] **B15: Enemies phase through placed bombs** — enemy movement ignores bomb cells
 
-## 📋 Next
-- [ ] Update PLAN.md to actual state
-- [ ] Extract game.js sub-classes (LevelTransitionOverlay, GameStateManager)
-- [ ] **Level 5 completion screen** — final score + restart option
-- [ ] **Bomb count in HUD** — show current/max
-- [ ] Bomb count display in HUD
 - [ ] **Deploy to Azure Static Web Apps** — live URL
-- [ ] **Azure Static Web Apps** — GitHub repo → Azure deployment pipeline
-- [ ] Playtest + polish pass
+- [ ] **Playtest + polish pass**
+- [ ] **game.js split** (optional) — extract GameStateManager/state machine for cleaner code
+
+## 📋 Done (not tracking anymore)
+- [x] Update PLAN.md to actual state
+- [x] Extract game.js sub-classes (GameStateManager, Level, Timer, PowerUpSystem, etc.)
+- [x] Level 5 completion screen
+- [x] Bomb count in HUD (shows 💣 x/y)

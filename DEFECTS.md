@@ -119,3 +119,13 @@ Recorded 2026-05-12 by Vlad. Do NOT go through the codebase — just track these
 - **Impact:** No chain-reaction explosions. Bombs act as walls instead of triggers — you can't blow up a cluster of bombs to clear a corridor. One of the most satisfying Bomberman mechanics is completely broken.
 - **Severity:** 🔴 Critical — chain reactions are core to Bomberman.
 - **Fix:** During explosion propagation in `bombs.js`, when a fire cell reaches a bomb that isn't yet exploded, set `bomb.exploded = true` so it detonates and propagates its own fire. The bomb should stop fire propagation at its cell (fire doesn't go past the triggered bomb) or propagate through it depending on design choice.
+
+### D15 — Regression causing the game to fail loading
+- **Issue:** When the game loads an error is logged in the console and the game fails to load. Two root causes were found:
+  1. **Duplicate class declaration:** Both `js/state-manager.js` and `js/game-state.js` defined `class GameStateManager`, causing `Uncaught SyntaxError: redeclaration of let GameStateManager`.
+  2. **Initialization order:** In `Game` constructor, `this.highScore = this._loadHighScore()` was called before `this.levelSystem = new Level(this)` was created. Since `_loadHighScore()` accesses `this.levelSystem._loadHighScore()`, it threw `Uncaught TypeError: can't access property "_loadHighScore", this.levelSystem is undefined`.
+- **Impact:** The game does not start at all.
+- **Severity:** 🔴 Critical — the game does not start.
+- **Status:** ✅ **Fixed (2026-06-02).**
+  - Removed duplicate `<script src="js/state-manager.js"></script>` from `index.html`.
+  - Moved `this.levelSystem = new Level(this)` initialization before `this.highScore = this._loadHighScore()` in `js/game.js` constructor.

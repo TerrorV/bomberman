@@ -3,12 +3,12 @@
 ## Status
 **Fully playable.** Multi-level, 3 enemy types, power-ups, HUD, timer, touch controls, responsive canvas.
 
-**Last commit:** `1376258` - power-up pickup sparkle burst animation
+**Last commit:** `23c878d` - refactor: split explosion processing into ExplosionSystem + fix bomb pass-through
 
 ## File sizes
 | File | Lines |
 |---|---|
-| js/game.js | **430** (needs split) |
+| js/game.js | **366** (still fat, could extract state machine) |
 | js/enemy.js | 181 |
 | js/player.js | 188 |
 | js/ui.js | 134 |
@@ -34,7 +34,7 @@
 - Lives (3), respawns with invincibility
 - 5 levels with procedural map gen (density scales per level)
 - Level transition screen + auto-advance
-- HUD: score, fire range, bombs, speed timer, enemy count, lives, countdown
+- HUD: score, fire range, bomb count, speed timer, enemy count, lives, countdown
 - Synthetic sounds (place/explosion/powerup/kill/death)
 - Particle effects on explosions
 - Timer countdown (5 min, red urgency <30s)
@@ -43,6 +43,8 @@
 - Mobile touch controls (virtual D-pad + bomb button)
 - Responsive canvas sizing
 - Power-up pickup sparkle animation
+- Explosion dedup (no duplicate frames)
+- ExplosionSystem extracted from game.js
 
 ## Known Issues
 | # | Issue | Status |
@@ -51,8 +53,6 @@
 | — | game.js still 430 lines | 🔴 Split needed |
 
 ## Next Up
-- [ ] **Update TODO.md** — align with actual codebase
-- [ ] **Extract game.js sub-classes** (e.g. LevelTransitionOverlay, GameStateManager)
-- [ ] **Level 5 completion screen** — show final score + restart option (currently just loops back)
-- [ ] **Bomb count in HUD** — show current/max
-- [ ] **Polish pass** — any remaining QoL from player feedback
+- [ ] **Azure deployment** — get it live on the web
+- [ ] **Polish pass** — QoL fixes from playtesting
+- [ ] **game.js split** (optional) — extract GameStateManager/state machine for cleaner code
