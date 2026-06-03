@@ -15,7 +15,7 @@ class Enemy {
     this._strafeDir = Math.floor(Math.random() * 4); // drifter: initial direction
   }
 
-  update(dt, map, player) {
+  update(dt, map, player, isBlocked) {
     if (!this.alive) return false;
     this.moveTimer += dt;
     this.blinkTimer += dt;
@@ -28,14 +28,22 @@ class Enemy {
 
     if (this.moveTimer >= interval) {
       this.moveTimer = 0;
-      this._chooseDirection(map, player);
-      this._tryMove(map);
+      this._chooseDirection(map, player, isBlocked);
+      this._tryMove(map, isBlocked);
     }
 
     return false;
   }
 
-  _chooseDirection(map, player) {
+  // D5/D11: helper to check if a cell is walkable (map + optional bomb/extra checks)
+  _canWalk(gx, gy, map, isBlocked) {
+    if (gx < 0 || gy < 0) return false;
+    if (!map.isWalkable(gx, gy)) return false;
+    if (isBlocked && isBlocked(gx, gy)) return false;
+    return true;
+  }
+
+  _chooseDirection(map, player, isBlocked) {
     const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
     if (this.type === CONFIG.ENEMY_TYPES.CHASER) {
       // Chase: pick direction that minimizes Manhattan distance to player
@@ -45,7 +53,7 @@ class Enemy {
         const [dx, dy] = dirs[i];
         const nx = this.gridX + dx;
         const ny = this.gridY + dy;
-        if (!map.isWalkable(nx, ny) || nx < 0 || ny < 0) continue;
+        if (!this._canWalk(nx, ny, map, isBlocked)) continue;
         const d = Math.abs(nx - player.gridX) + Math.abs(ny - player.gridY);
         if (d < bestDist) {
           bestDist = d;
@@ -54,7 +62,7 @@ class Enemy {
       }
       // If no valid direction found, pick random valid one
       if (bestDir === -1) {
-        this.dir = this._randomValidDir(map);
+        this.dir = this._randomValidDir(map, isBlocked);
       } else {
         this.dir = bestDir;
       }
@@ -62,20 +70,20 @@ class Enemy {
       // Drifter: keep current direction, only change if blocked (handled in _tryMove)
     } else {
       // Roamer: slight chance to change direction
-      if (map.isWalkable(this.gridX, this.gridY) && Math.random() < 0.05) {
+      if (Math.random() < 0.05) {
         this.dir = Math.floor(Math.random() * 4);
       }
     }
   }
 
-  _randomValidDir(map) {
+  _randomValidDir(map, isBlocked) {
     const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
     const validDirs = [];
     for (let i = 0; i < 4; i++) {
       const [dx, dy] = dirs[i];
       const nx = this.gridX + dx;
       const ny = this.gridY + dy;
-      if (map.isWalkable(nx, ny) && nx >= 0 && ny >= 0) validDirs.push(i);
+      if (this._canWalk(nx, ny, map, isBlocked)) validDirs.push(i);
     }
     return validDirs.length > 0 ? validDirs[Math.floor(Math.random() * validDirs.length)] : this.dir;
   }
@@ -84,7 +92,7 @@ class Enemy {
     return Math.abs(this.gridX - player.gridX) + Math.abs(this.gridY - player.gridY);
   }
 
-  _tryMove(map) {
+  _tryMove(map, isBlocked) {
     const cs = this.config.CELL_SIZE;
     const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
     const [dx, dy] = dirs[this.dir];
@@ -92,29 +100,22 @@ class Enemy {
     const nx = this.gridX + dx;
     const ny = this.gridY + dy;
 
-    if (map.isWalkable(nx, ny) && nx >= 0 && ny >= 0) {
+    if (this._canWalk(nx, ny, map, isBlocked)) {
       this.gridX = nx;
       this.gridY = ny;
       this.x = nx * cs;
       this.y = ny * cs;
     } else {
       // Hit a wall — pick a new direction
-      // For roamers and chasers: random valid direction
-      // For drifters: pick the first valid direction (keep bouncing)
       const validDirs = [];
       for (let i = 0; i < 4; i++) {
         const [adx, ady] = dirs[i];
         const ax = this.gridX + adx;
         const ay = this.gridY + ady;
-        if (map.isWalkable(ax, ay) && ax >= 0 && ay >= 0) validDirs.push(i);
+        if (this._canWalk(ax, ay, map, isBlocked)) validDirs.push(i);
       }
       if (validDirs.length > 0) {
-        if (this.type === CONFIG.ENEMY_TYPES.DRIFTER) {
-          // Drifter: try current direction first (it was blocked), then pick randomly
-          this.dir = validDirs[Math.floor(Math.random() * validDirs.length)];
-        } else {
-          this.dir = validDirs[Math.floor(Math.random() * validDirs.length)];
-        }
+        this.dir = validDirs[Math.floor(Math.random() * validDirs.length)];
       }
     }
   }

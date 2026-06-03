@@ -13,29 +13,34 @@ class Bomb {
     return this.timer <= 0;
   }
 
-  explode(config, fireRange) {
+  explode(config, fireRange, checks) {
     const range = fireRange || config.FIRE_RANGE;
     const result = [];
     const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+    const wallCheck = (checks && checks.WALL_CHECK) || null;
+    const blockCheck = (checks && checks.BLOCK_CHECK) || null;
+    const bombCheck = (checks && checks.BOMB_CHECK) || null;
 
     for (const [dx, dy] of dirs) {
       for (let i = 1; i <= range; i++) {
         const x = this.gridX + dx * i;
         const y = this.gridY + dy * i;
         if (x < 0 || y < 0) break;
+        if (x >= config.COLS || y >= config.ROWS) break;
+
+        // D12: Stop at walls (indestructible blocks)
+        if (wallCheck && wallCheck(x, y)) break;
+
+        // D14: Stop at other bombs and trigger chain reaction
+        if (bombCheck && bombCheck(x, y)) break;
 
         result.push({ x, y, type: 'fire' });
 
-        // Stop at walls
-        if (config.WALL_CHECK && config.WALL_CHECK(x, y)) break;
-
         // Stop at blocks (destroy and stop)
-        if (config.BLOCK_CHECK && config.BLOCK_CHECK(x, y)) {
+        if (blockCheck && blockCheck(x, y)) {
           result.push({ x, y, type: 'destroyed' });
           break;
         }
-
-        // Classic Bomberman: explosions pass through bombs (no chain reaction)
       }
     }
     // Add the bomb cell itself

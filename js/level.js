@@ -72,6 +72,27 @@ class Level {
     }
   }
 
+  // D13: Check if player is hit by any explosion
+  checkPlayerExplosionHit(currentExplosions, newExplosions) {
+    if (this.game.player.invincible > 0) return;
+    if (!this.game.player.alive) return;
+
+    const allExp = [...currentExplosions, ...newExplosions];
+    for (const exp of allExp) {
+      for (const cell of exp.fireCells) {
+        if (this.game.player.gridX === cell.x && this.game.player.gridY === cell.y) {
+          this.game.player.alive = false;
+          soundFX.death();
+          const deathFire = this._generateDeathExplosion(this.game.player.gridX, this.game.player.gridY);
+          this.game.explosions.push(new Explosion(deathFire, CONFIG));
+          this.game.deathAnimTimer = 0.5;
+          this.game.gameState = 'dying';
+          return;
+        }
+      }
+    }
+  }
+
   // Handle player collision with enemy
   checkEnemyCollision(enemy) {
     if (this.game.player.invincible > 0) return;

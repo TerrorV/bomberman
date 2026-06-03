@@ -195,21 +195,40 @@ class Game {
       }
     }
 
-    // 3. Update bombs
+    // 3. Update bombs (with chain reaction support)
     const newExplosions = [];
+    const explodedSet = new Set();
+
+    const processBomb = (bomb) => {
+      const bombKey = `${bomb.gridX},${bomb.gridY}`;
+      if (explodedSet.has(bombKey)) return;
+      explodedSet.add(bombKey);
+
+      const fireCells = bomb.explode(CONFIG, this.player.fireRange, {
+        WALL_CHECK: (x, y) => this.mapSystem.isWall(x, y),
+        BLOCK_CHECK: (x, y) => this.mapSystem.isBlock(x, y),
+        // D14: Chain reaction - detonate other bombs reached by fire
+        BOMB_CHECK: (x, y) => {
+          for (const other of this.bombs) {
+            if (other.gridX === x && other.gridY === y && !explodedSet.has(`${other.gridX},${other.gridY}`)) {
+              processBomb(other); // recursively detonate
+              return true;
+            }
+          }
+          return false;
+        },
+      });
+      newExplosions.push(new Explosion(fireCells, CONFIG));
+      // Spawn particles for each fire cell
+      for (const cell of fireCells) {
+        this.particles.burst(cell.x, cell.y, 'radial', 6);
+      }
+      this.player.bombsPlaced--;
+    };
+
     this.bombs = this.bombs.filter(bomb => {
       if (bomb.update(dt)) {
-        const fireCells = bomb.explode(CONFIG, this.player.fireRange, {
-          WALL_CHECK: (x, y) => this.mapSystem.isWall(x, y),
-          BLOCK_CHECK: (x, y) => this.mapSystem.isBlock(x, y),
-        });
-        newExplosions.push(new Explosion(fireCells, CONFIG));
-        // Spawn particles for each fire cell
-        for (const cell of fireCells) {
-          this.particles.burst(cell.x, cell.y, 'radial', 6);
-        }
-        // Return bomb to inventory
-        this.player.bombsPlaced--;
+        processBomb(bomb);
         return false;
       }
       return true;
@@ -247,10 +266,19 @@ class Game {
     // Kill enemies hit by explosions
     this.levelSystem.killEnemiesInExplosions(this.explosions, newExplosions);
 
-    // 6. Update enemies
+    // D13: Check if player is hit by explosions
+    this.levelSystem.checkPlayerExplosionHit(this.explosions, newExplosions);
+
+    // 6. Update enemies (D5/D11: pass bomb-aware blocked callback)
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
-      enemy.update(dt, this.mapSystem, this.player);
+      enemy.update(dt, this.mapSystem, this.player, (gx, gy) => {
+        // Check bombs - enemies can't walk through bombs
+        for (const bomb of this.bombs) {
+          if (bomb.gridX === gx && bomb.gridY === gy) return true;
+        }
+        return false;
+      });
       this.levelSystem.checkEnemyCollision(enemy);
     }
 
