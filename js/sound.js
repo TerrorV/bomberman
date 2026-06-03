@@ -13,6 +13,14 @@ class SoundFX {
     } catch { this.enabled = false; }
   }
 
+  // B6: called on user gesture (ENTER press) to resume AudioContext
+  start() {
+    this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
   _play(freq, duration, type = 'square', vol = 0.15, ramp = 'decay') {
     if (!this.enabled || !this.ctx) return;
     if (this.ctx.state === 'suspended') this.ctx.resume();

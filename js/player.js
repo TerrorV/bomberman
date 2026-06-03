@@ -78,6 +78,12 @@ class Player {
     const cs = this.config.CELL_SIZE;
     const r = cs * 0.35; // collision radius
 
+    // D10: cell is blocked = isBlocked callback OR checkWalk
+    const blocked = (gx, gy) => {
+      if (isBlocked && isBlocked(gx, gy)) return true;
+      return this.checkWalk(gx, gy, map);
+    };
+
     // Try moving X
     if (dx !== 0) {
       const left = dx < 0 ? newX + r : newX + cs - r;
@@ -89,11 +95,10 @@ class Player {
       const cellLeft = Math.floor(left / cs);
       const cellRight = Math.floor(right / cs);
 
-      const blockedX = (isBlocked && (isBlocked(cellLeft, cellTop) || isBlocked(cellLeft, cellBottom) || isBlocked(cellRight, cellTop) || isBlocked(cellRight, cellBottom))) ||
-                       this.checkWalk(cellLeft, cellTop, map) ||
-                       this.checkWalk(cellLeft, cellBottom, map) ||
-                       this.checkWalk(cellRight, cellTop, map) ||
-                       this.checkWalk(cellRight, cellBottom, map);
+      const blockedX = blocked(cellLeft, cellTop) ||
+                       blocked(cellLeft, cellBottom) ||
+                       blocked(cellRight, cellTop) ||
+                       blocked(cellRight, cellBottom);
       if (!blockedX) this.x = newX;
     }
 
@@ -108,11 +113,10 @@ class Player {
       const cellTop = Math.floor(top / cs);
       const cellBottom = Math.floor(bottom / cs);
 
-      const blockedY = (isBlocked && (isBlocked(cellLeft, cellTop) || isBlocked(cellLeft, cellBottom) || isBlocked(cellRight, cellTop) || isBlocked(cellRight, cellBottom))) ||
-                       this.checkWalk(cellLeft, cellTop, map) ||
-                       this.checkWalk(cellLeft, cellBottom, map) ||
-                       this.checkWalk(cellRight, cellTop, map) ||
-                       this.checkWalk(cellRight, cellBottom, map);
+      const blockedY = blocked(cellLeft, cellTop) ||
+                       blocked(cellLeft, cellBottom) ||
+                       blocked(cellRight, cellTop) ||
+                       blocked(cellRight, cellBottom);
       if (!blockedY) this.y = newY;
     }
 

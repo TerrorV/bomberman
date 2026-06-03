@@ -37,7 +37,7 @@ const CONFIG = {
   BLOCK_DENSITY_LEVEL1: 0.45,
   BLOCK_DENSITY_PER_LEVEL: 0.06,
   BLOCK_DENSITY_MAX: 0.75,
-  WALL_GRID_SPACING: 2,
+  WALL_GRID_SPACING: 3, // D9: spacing of 3 creates classic maze corridors (every 3rd cell)
   START_POS: { x: 1, y: 1 },
   ENEMY_SPAWNS: [
     { x: 13, y: 1, type: 'roamer' },

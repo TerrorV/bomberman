@@ -8,7 +8,7 @@ class Enemy {
     this.y = spawnY * config.CELL_SIZE;
     this.type = type || config.ENEMY_TYPES.ROAMER;
     this.dir = Math.floor(Math.random() * 4); // 0=up, 1=right, 2=down, 3=left
-    this.moveTimer = 0;
+    this.moveTimer = Math.random() * 0.3; // D4: random offset so enemies don't move in lockstep
     this.moveInterval = 0.3; // update direction every 0.3s
     this.alive = true;
     this.blinkTimer = 0;
