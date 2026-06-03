@@ -84,7 +84,7 @@ Recorded 2026-05-12 by Vlad. Do NOT go through the codebase — just track these
 - **Issue:** The current map generation places destructible blocks (`BLOCK`) randomly across the grid with no structure. In classic Bomberman, indestructible blocks form corridors and walls (a fixed maze pattern), while destructible blocks fill the gaps randomly.
 - **Impact:** Every game looks the same, no maze-like structure, no strategic layout. No sense of corridors vs open spaces.
 - **Severity:** High — core design flaw. The map should have a fixed skeleton of indestructible walls forming corridors, with destructible blocks randomly filling some of the empty spaces.
-- **Status:** ✅ **Fixed (2026-06-02).** `WALL_GRID_SPACING` increased from 2 to 3 in `config.js`. This creates classic maze-like corridors (every 3rd cell has indestructible walls forming a proper grid pattern with wider corridors). Destructible blocks still fill remaining space at configurable density.
+- **Status:** ✅ **Fixed (2026-06-03).** `WALL_GRID_SPACING` set to 2 in `config.js`. This creates the classic Bomberman every-other-block pattern: indestructible walls at positions 1,3,5,7,9,11,13 (inner grid only). The outermost border (row 0, row 12, col 0, col 14) remains open for movement and destructible blocks. Destructible blocks fill the empty spaces between walls at configurable density.
 
 ### D10 — Player gets stuck in their own bomb and drifts left
 - **Issue:** When the player places a bomb, the bomb occupies the same grid cell as the player. The player's own bomb is treated as a walkable obstruction by `_isBlocked()`, so the player can't leave. Movement drifts left because the left edge of the canvas cell has slightly more overlap with walkable space, or the input drifts.

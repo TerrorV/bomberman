@@ -37,13 +37,13 @@ const CONFIG = {
   BLOCK_DENSITY_LEVEL1: 0.45,
   BLOCK_DENSITY_PER_LEVEL: 0.06,
   BLOCK_DENSITY_MAX: 0.75,
-  WALL_GRID_SPACING: 3, // D9: spacing of 3 creates classic maze corridors (every 3rd cell)
-  START_POS: { x: 1, y: 1 },
+  WALL_GRID_SPACING: 2, // Every-other-block pattern: walls at positions 1,3,5,7,9,11,13 (classic Bomberman grid)
+  START_POS: { x: 0, y: 0 },
   ENEMY_SPAWNS: [
-    { x: 13, y: 1, type: 'roamer' },
-    { x: 1, y: 11, type: 'chaser' },
-    { x: 13, y: 11, type: 'drifter' },
-    { x: 7, y: 5, type: 'roamer' },
+    { x: 12, y: 2, type: 'roamer' },
+    { x: 2, y: 10, type: 'chaser' },
+    { x: 12, y: 10, type: 'drifter' },
+    { x: 8, y: 6, type: 'roamer' },
   ],
   POWERUP_SPAWN: { chance: 0.3 },
   POWERUP_FIRE: 'fire',

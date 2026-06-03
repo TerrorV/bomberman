@@ -43,9 +43,9 @@ class MapSystem {
       BLOCK_DENSITY_MAX
     );
 
-    // 3) Fill remaining floor tiles with blocks at the configured density
-    for (let y = 1; y < ROWS - 1; y++) {
-      for (let x = 1; x < COLS - 1; x++) {
+    // 3) Fill remaining floor tiles with blocks at the configured density (including outer border)
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
         if (grid[y][x] === TILE.EMPTY && Math.random() < density) {
           grid[y][x] = TILE.BLOCK;
         }

@@ -86,8 +86,8 @@ class Player {
 
     // Try moving X
     if (dx !== 0) {
-      const left = dx < 0 ? newX + r : newX + cs - r;
-      const right = dx < 0 ? newX + cs - r : newX + cs - r;
+      const left = newX + r;
+      const right = newX + cs - r;
       const top = newY + r;
       const bottom = newY + cs - r;
       const cellTop = Math.floor(top / cs);
@@ -104,8 +104,8 @@ class Player {
 
     // Try moving Y
     if (dy !== 0) {
-      const top = dy < 0 ? newY + r : newY + cs - r;
-      const bottom = dy < 0 ? newY + cs - r : newY + cs - r;
+      const top = newY + r;
+      const bottom = newY + cs - r;
       const left = this.x + r;
       const right = this.x + cs - r;
       const cellLeft = Math.floor(left / cs);
