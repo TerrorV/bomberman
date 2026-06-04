@@ -15,11 +15,6 @@ class ExplosionSystem {
 
     for (const exp of newExplosions) {
       hasExplosion = true;
-      for (const cell of exp.fireCells) {
-        if (this.mapSystem.isBlock(cell.x, cell.y)) {
-          this.mapSystem.destroyBlock(cell.x, cell.y);
-        }
-      }
     }
 
     // Play explosion sound once per batch
@@ -27,8 +22,17 @@ class ExplosionSystem {
       this.soundFX.explosion();
     }
 
-    // Delegate powerup spawning
+    // Delegate powerup spawning BEFORE destroying blocks (spawnFromExplosions checks isBlock)
     this.powerupSystem.spawnFromExplosions(newExplosions);
+
+    // Now destroy blocks hit by fire
+    for (const exp of newExplosions) {
+      for (const cell of exp.fireCells) {
+        if (this.mapSystem.isBlock(cell.x, cell.y)) {
+          this.mapSystem.destroyBlock(cell.x, cell.y);
+        }
+      }
+    }
 
     // Merge new explosions into main array (dedup)
     const existingKeys = new Set(
