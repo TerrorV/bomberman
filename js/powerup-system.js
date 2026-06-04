@@ -5,18 +5,14 @@ class PowerUpSystem {
     this.game = game;
   }
 
-  // Spawn powerups from destroyed blocks
-  spawnFromExplosions(newExplosions) {
+  // Spawn powerups from a list of cells that had blocks destroyed
+  spawnFromDestroyedBlocks(destroyedBlockCells) {
     const powerupCells = [];
-    for (const exp of newExplosions) {
-      for (const cell of exp.fireCells) {
-        if (this.game.mapSystem.isBlock(cell.x, cell.y)) {
-          if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
-            const types = [CONFIG.POWERUP_FIRE, CONFIG.POWERUP_BOMB, CONFIG.POWERUP_SPEED];
-            const type = types[Math.floor(Math.random() * types.length)];
-            powerupCells.push({ x: cell.x, y: cell.y, type });
-          }
-        }
+    for (const cell of destroyedBlockCells) {
+      if (Math.random() < CONFIG.POWERUP_SPAWN.chance) {
+        const types = [CONFIG.POWERUP_FIRE, CONFIG.POWERUP_BOMB, CONFIG.POWERUP_SPEED];
+        const type = types[Math.floor(Math.random() * types.length)];
+        powerupCells.push({ x: cell.x, y: cell.y, type });
       }
     }
     if (powerupCells.length > 0) {

@@ -68,9 +68,14 @@ class Game {
     for (const bomb of this.bombs) {
       if (bomb.gridX === gx && bomb.gridY === gy) {
         // Classic Bomberman: player can walk out of their own bomb but not back in
-        // If player's current cell IS this bomb cell, allow walk (they're stepping out)
-        if (this.player.gridX === gx && this.player.gridY === gy) {
-          return false; // they're standing here, let them leave
+        // Use pixel-based overlap: as long as player's pixel area overlaps this bomb cell, allow passage
+        const cs = CONFIG.CELL_SIZE;
+        const pL = this.player.x, pR = this.player.x + cs;
+        const pT = this.player.y, pB = this.player.y + cs;
+        const bL = gx * cs, bR = (gx + 1) * cs;
+        const bT = gy * cs, bB = (gy + 1) * cs;
+        if (pL < bR && pR > bL && pT < bB && pB > bT) {
+          return false; // player still overlaps this cell — let them leave
         }
         return true;
       }
@@ -83,8 +88,6 @@ class Game {
     }
     return false;
   }
-
-
 
 
 
@@ -234,12 +237,14 @@ class Game {
       return true;
     });
 
-    // 4. Process explosions - destroy blocks and spawn powerups
+    // 4. Process explosions - track destroyed blocks BEFORE destroying, then spawn powerups
     let hasExplosion = false;
+    const destroyedBlockCells = []; // track which cells HAD blocks for powerup spawning
     for (const exp of newExplosions) {
       hasExplosion = true;
       for (const cell of exp.fireCells) {
         if (this.mapSystem.isBlock(cell.x, cell.y)) {
+          destroyedBlockCells.push({ x: cell.x, y: cell.y });
           this.mapSystem.destroyBlock(cell.x, cell.y);
         }
       }
@@ -248,8 +253,8 @@ class Game {
     if (hasExplosion) {
       soundFX.explosion();
     }
-    // Delegate powerup spawning
-    this.powerupSystem.spawnFromExplosions(newExplosions);
+    // Spawn powerups from cells that HAD blocks (before destruction)
+    this.powerupSystem.spawnFromDestroyedBlocks(destroyedBlockCells);
 
     // Merge new explosions (once)
     const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
