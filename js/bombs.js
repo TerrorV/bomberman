@@ -31,8 +31,10 @@ class Bomb {
         // D12: Stop at walls (indestructible blocks)
         if (wallCheck && wallCheck(x, y)) break;
 
-        // D14: Stop at other bombs and trigger chain reaction
-        if (bombCheck && bombCheck(x, y)) break;
+        // D14: Trigger chain reaction on other bombs but let fire continue through
+        if (bombCheck && bombCheck(x, y)) {
+          // Chain detonate — fire still covers this cell and continues
+        }
 
         result.push({ x, y, type: 'fire' });
 
