@@ -45,11 +45,7 @@ class PowerUp {
     }
   }
 
-  collidesWith(x, y, config) {
-    const cs = config.CELL_SIZE;
-    const cx = this.gridX * cs + cs / 2;
-    const cy = this.gridY * cs + cs / 2;
-    const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-    return dist < cs * 0.45;
+  collidesWith(gridX, gridY, config) {
+    return this.gridX === gridX && this.gridY === gridY;
   }
 }

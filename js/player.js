@@ -25,7 +25,7 @@ class Player {
   }
 
   canPlaceBomb() {
-    return this.alive && this.bombsPlaced < this.config.BOMB_COUNT;
+    return this.alive && this.bombsPlaced < this.bombCount;
   }
 
   placeBomb() {

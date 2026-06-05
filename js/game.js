@@ -203,17 +203,25 @@ class Game {
     const explodedSet = new Set();
 
     const processBomb = (bomb) => {
-      const bombKey = `${bomb.gridX},${bomb.gridY}`;
-      if (explodedSet.has(bombKey)) return;
+      const bombKey = bomb.gridX + ',' + bomb.gridY;
+      if (explodedSet.has(bombKey)) {
+        console.log('[CHAIN] Bomb ' + bombKey + ' already exploded, skipping');
+        return;
+      }
       explodedSet.add(bombKey);
+      console.log('[CHAIN] processBomb ' + bombKey + ', explodedSet count: ' + explodedSet.size);
 
       const fireCells = bomb.explode(CONFIG, this.player.fireRange, {
         WALL_CHECK: (x, y) => this.mapSystem.isWall(x, y),
         BLOCK_CHECK: (x, y) => this.mapSystem.isBlock(x, y),
         // D14: Chain reaction - detonate other bombs reached by fire
         BOMB_CHECK: (x, y) => {
+          const checkKey = x + ',' + y;
+          console.log('[CHAIN] BOMB_CHECK at (' + x + ',' + y + '), bombs count: ' + this.bombs.length);
           for (const other of this.bombs) {
-            if (other.gridX === x && other.gridY === y && !explodedSet.has(`${other.gridX},${other.gridY}`)) {
+            const otherKey = other.gridX + ',' + other.gridY;
+            if (other.gridX === x && other.gridY === y && !explodedSet.has(otherKey)) {
+              console.log('[CHAIN] Found unexploded bomb ' + otherKey + ' at (' + x + ',' + y + '), chaining!');
               processBomb(other); // recursively detonate
               return true;
             }
@@ -221,6 +229,7 @@ class Game {
           return false;
         },
       });
+      console.log('[CHAIN] Bomb ' + bombKey + ' produced ' + fireCells.length + ' fire cells');
       newExplosions.push(new Explosion(fireCells, CONFIG));
       // Spawn particles for each fire cell
       for (const cell of fireCells) {
@@ -229,13 +238,29 @@ class Game {
       this.player.bombsPlaced--;
     };
 
+    console.log('[CHAIN] --- Frame: ' + this.bombs.length + ' bombs');
     this.bombs = this.bombs.filter(bomb => {
-      if (bomb.update(dt)) {
+      const expired = bomb.update(dt);
+      if (expired) {
+        console.log('[CHAIN] Bomb ' + bomb.gridX + ',' + bomb.gridY + ' expired, calling processBomb');
         processBomb(bomb);
         return false;
       }
       return true;
     });
+
+    // Remove bombs that were chain-detonated (already in explodedSet)
+    // These bombs had their explosion created via processBomb but their timer hadn't expired yet
+    this.bombs = this.bombs.filter(bomb => {
+      const key = bomb.gridX + ',' + bomb.gridY;
+      if (explodedSet.has(key)) {
+        console.log('[CHAIN] Removing chain-detonated bomb ' + key);
+        return false;
+      }
+      return true;
+    });
+
+    console.log('[CHAIN] After filter: ' + this.bombs.length + ' bombs remain, ' + newExplosions.length + ' explosions created');
 
     // 4. Process explosions - track destroyed blocks BEFORE destroying, then spawn powerups
     let hasExplosion = false;
@@ -257,9 +282,9 @@ class Game {
     this.powerupSystem.spawnFromDestroyedBlocks(destroyedBlockCells);
 
     // Merge new explosions (once)
-    const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => `${c.x},${c.y}`).join('-')));
+    const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => c.x + ',' + c.y).join('-')));
     for (const exp of newExplosions) {
-      const key = exp.fireCells.map(c => `${c.x},${c.y}`).join('-');
+      const key = exp.fireCells.map(c => c.x + ',' + c.y).join('-');
       if (!existingKeys.has(key)) {
         this.explosions.push(exp);
       }

@@ -29,7 +29,7 @@ class PowerUpSystem {
     for (let i = this.game.powerups.length - 1; i >= 0; i--) {
       const pu = this.game.powerups[i];
       pu.update(dt);
-      if (pu.collidesWith(this.game.player.x, this.game.player.y, CONFIG)) {
+      if (pu.collidesWith(this.game.player.gridX, this.game.player.gridY, CONFIG)) {
         this.game.player.applyPowerup(pu.type);
         soundFX.powerUp();
         // Sparkle burst at pickup position

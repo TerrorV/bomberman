@@ -21,18 +21,25 @@ class Bomb {
     const blockCheck = (checks && checks.BLOCK_CHECK) || null;
     const bombCheck = (checks && checks.BOMB_CHECK) || null;
 
+    console.log('[EXPLode] Bomb at (' + this.gridX + ',' + this.gridY + ') starting explosion, range=' + range);
     for (const [dx, dy] of dirs) {
+      const dirName = (dx === 1 ? 'right' : dx === -1 ? 'left' : dy === 1 ? 'down' : 'up');
+      console.log('[EXPLODE]   Direction: ' + dirName);
       for (let i = 1; i <= range; i++) {
         const x = this.gridX + dx * i;
         const y = this.gridY + dy * i;
-        if (x < 0 || y < 0) break;
-        if (x >= config.COLS || y >= config.ROWS) break;
+        if (x < 0 || y < 0) { console.log('[EXPLODE]     (' + x + ',' + y + ') OUT OF BOUNDS'); break; }
+        if (x >= config.COLS || y >= config.ROWS) { console.log('[EXPLODE]     (' + x + ',' + y + ') OUT OF BOUNDS'); break; }
 
         // D12: Stop at walls (indestructible blocks)
-        if (wallCheck && wallCheck(x, y)) break;
+        if (wallCheck && wallCheck(x, y)) {
+          console.log('[EXPLODE]     (' + x + ',' + y + ') WALL - stopping');
+          break;
+        }
 
         // D14: Trigger chain reaction on other bombs but let fire continue through
         if (bombCheck && bombCheck(x, y)) {
+          console.log('[EXPLODE]     (' + x + ',' + y + ') BOMB HIT - chain detonating');
           // Chain detonate — fire still covers this cell and continues
         }
 
@@ -40,9 +47,11 @@ class Bomb {
 
         // Stop at blocks (destroy and stop)
         if (blockCheck && blockCheck(x, y)) {
+          console.log('[EXPLODE]     (' + x + ',' + y + ') BLOCK - destroyed and stop');
           result.push({ x, y, type: 'destroyed' });
           break;
         }
+        console.log('[EXPLODE]     (' + x + ',' + y + ') fire cell added');
       }
     }
     // Add the bomb cell itself
