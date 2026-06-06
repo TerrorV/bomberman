@@ -1,6 +1,8 @@
 # Bomberman 🎮
 
-Classic Bomberman clone built with vanilla JS + Canvas. No frameworks, no build step — just a browser.
+Classic Bomberman clone built with vanilla JS + Canvas.
+
+> **🎮 Play online:** [https://salmon-bay-0eda95503.7.azurestaticapps.net](https://salmon-bay-0eda95503.7.azurestaticapps.net)
 
 ## Features
 
@@ -12,13 +14,17 @@ Classic Bomberman clone built with vanilla JS + Canvas. No frameworks, no build 
 - 🔊 **Synth sound effects** — Web Audio API (no external audio files)
 - 🎯 **Win condition** — kill all enemies to clear the level
 
-## How to Run
+## Deployment
 
-### Option 1: Just open it
-```
-Open bomberman/index.html in your browser
-```
-That's it. Works locally — no server needed.
+Hosted on **Azure Static Web Apps** (free tier).
+
+### Deploy your own
+
+1. Fork or clone this repo
+2. In [Azure Portal](https://portal.azure.com), create a **Static Web App**
+3. Connect to your GitHub repo, branch `master`
+4. Set **App location**: `/`, **Build artifacts location**: `/`
+5. Deploy — the app is live automatically on every push
 
 ### Option 2: With a dev server
 If you want live-reload or just prefer a proper server:
