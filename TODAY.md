@@ -1,23 +1,42 @@
-# Bomberman - Today's Progress: 2026-05-14
+# Bomberman - Today's Progress: 2026-06-07
 
 ## Goal
-Continue the classic Bomberman project with small incremental steps.
+Make Bomberman mobile-compatible: responsive design + touch controls.
 
 ## Status
-- Midnight frenzy session — working on level advancement
+- Mobile compatibility session — late night
 
-## Steps for Tonight
-1. ✅ Review project state and plan
-2. 🔜 Fix stale TODO/PLAN docs
-3. 🔜 Wire up level advancement on win
-4. 🔜 Add level transition screen
-5. 🔜 Increase difficulty per level (enemies, density)
+## Changes Made
 
-## Progress
+### `index.html`
+- Added mobile-friendly viewport meta: `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no`
+- Added `apple-mobile-web-app-capable` and `mobile-web-app-capable` meta tags
+- Removed hardcoded canvas `width="720" height="624"` attributes (now set dynamically in JS)
 
-### Step 0: Review ✅ (00:30 UTC)
-- Codebase fully reviewed — all files read
-- Core: all working (movement, bombs, explosions, 3 enemy types, power-ups, lives)
-- Config has level infrastructure (`level`, `ENEMIES_PER_LEVEL`, density per level)
-- TODO/PLAN docs are stale — need cleanup
-- **Next: wire up level progression on win**
+### `css/style.css` — Complete Rewrite
+- Added `touch-action: none` and `overscroll-behavior: none` on body to prevent pull-to-refresh/rubber-banding
+- Canvas uses `image-rendering: pixelated` for crisp scaling
+- Touch overlay (`#touch-overlay`) with D-pad grid (3×2) + bomb button
+- `.touch-device #touch-overlay { display: flex }` shows controls only on touch devices
+- Responsive breakpoints: 480px (small phones), 768px (medium phones), landscape (500px max-height), 1024px (tablets)
+
+### `js/game.js`
+- **Touch controls initialized**: `game._detectTouch()` and `game.touchControls.show()` called in `init()`
+- **Responsive canvas**: Canvas keeps native 720×624 internal resolution, CSS `width`/`height` set via JS for proper scaling (no transform hack)
+- **Canvas upscaling on mobile**: Removed `Math.min(..., 1)` cap so canvas fills screen on smaller devices
+- **Touch overlay offset**: Accounted for 150px overlay height when calculating canvas scale
+- **Tap-to-start**: Canvas tap/click starts game from start screen, game over screen, or final win screen (`_onCanvasTap` + `_touchTap` flag)
+
+### `js/touch-controls.js`
+- **Fixed D-pad button order**: Was (up, down, left, right) → now (up, left, down, right) for correct CSS grid layout
+- **Added mouse event fallback**: `mousedown`/`mouseup`/`mouseleave` handlers for desktop testing
+
+## Issues Found & Fixed
+- Touch control code existed but was never initialized (no call to `_detectTouch()`)
+- D-pad buttons were swapped (up/down positions wrong in grid)
+- Canvas was capped at 1× scale causing tiny game board on mobile — removed the cap
+- Canvas was using `transform: scale()` which didn't affect layout — switched to setting CSS `width`/`height` directly
+
+## Next Steps
+- Test on actual mobile device
+- Consider semi-transparent/overlay mode for touch controls to maximize game area

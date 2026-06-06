@@ -1,56 +1,36 @@
-# Session Handoff — Bomberman Refactoring
+# Session Handoff — Bomberman Mobile Compatibility
 
 ## Goal
-Break apart the 529-line `js/game.js` monolith into smaller subsystem files so we can work in manageable context chunks.
+Make the Bomberman clone mobile-compatible: responsive design that adjusts to mobile screens + touch controls.
 
-## Plan
-Extract from game.js into 4 new files:
+## Completed: 2026-06-07
 
-| New file | What it owns | Approx lines |
-|---|---|-|
-| `js/ui.js` | HUD rendering, start screen, game over/win overlays, high score display | ~120 lines |
-| `js/powerup-system.js` | Power-up spawning from explosions, collision/pickup, speed timer countdown | ~30 lines |
-| `js/timer.js` | Level timer countdown, urgency coloring, win/timeout check | ~25 lines |
-| `js/level.js` | Lives system, player death/respawn, level transitions, high score (load/save/check), procedural map gen | ~100 lines |
+### Files Modified
+| File | Change |
+|---|---|
+| `index.html` | Added mobile viewport meta, web app meta, removed hardcoded canvas dimensions |
+| `css/style.css` | Complete rewrite: responsive layout, touch overlay CSS, breakpoints for 480/768/1024px + landscape |
+| `js/game.js` | Initialize touch controls in `init()`, responsive canvas scaling (upscaling allowed), tap-to-start for screens |
+| `js/touch-controls.js` | Fixed D-pad grid order (was up/down swapped), added mouse fallback for desktop testing |
 
-**Result:** game.js → ~80-90 lines. Just game loop, state machine routing, delegate to subsystems.
+### Key Technical Details
+- Canvas internal resolution: 720×624 (15×13 grid × 48px cells) — unchanged for correct game rendering
+- Canvas CSS size set via `canvas.style.width`/`style.height` based on viewport, maintaining aspect ratio
+- Touch overlay reserves 150px at bottom on mobile
+- D-pad: CSS grid 3×2, positioned bottom-left. Bomb button: 70px circle, bottom-right
+- Touch detection: `'ontouchstart' in window || navigator.maxTouchPoints > 0`
+- Touch controls map to same key codes as keyboard (ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Space)
+- Tap-to-start: `_onCanvasTap()` sets `_touchTap` flag, checked in `update()` for start/gameover/finalWin states
 
-**What stays as-is:** `config.js`, `map.js`, `player.js`, `bombs.js`, `enemy.js`, `input.js`, `sound.js`, `particles.js` — already well-sized (30-180 lines).
+### Bugs Fixed
+1. Touch controls never initialized (code existed but `_detectTouch()` not called)
+2. D-pad up/down buttons swapped in HTML template
+3. Canvas capped at 1× scale (`Math.min(..., 1)`) — tiny on mobile. Removed cap.
+4. `transform: scale()` didn't affect layout — switched to direct CSS `width`/`height`
 
-## Execution Order
-One subsystem at a time:
-1. Create `js/ui.js` → extract HUD, start screen, game over/win overlays → verify → commit
-2. Create `js/powerup-system.js` → extract power-up logic → verify → commit
-3. Create `js/timer.js` → extract timer → verify → commit
-4. Create `js/level.js` → extract lives/death/level/high-score → verify → commit
-5. Refactor game.js to ~90 lines → verify → commit
-6. Update `index.html` script import order
+### Pending
+- Test on actual mobile device
+- Consider overlay/transparent touch controls to maximize game area
 
-## Game State Machine
-`start` → `playing` → `win`/`gameover`/`dying`/`levelwin`
-
-## Current File State
-- `game.js` — 529 lines, unrefactored, fully working
-- All other subsystems — solid, working
-- DEFECTS.md + TODO.md — bug list with some items still open
-
-## index.html Update Needed
-After new files are created, update `<script>` import order:
-1. config.js
-2. map.js
-3. player.js
-4. bombs.js
-5. enemy.js
-6. powerup.js
-7. **ui.js** (new)
-8. **powerup-system.js** (new)
-9. **timer.js** (new)
-10. **level.js** (new)
-11. sound.js
-12. particles.js
-13. input.js
-14. game.js
-
-## Safety
-- Working tree was clean before starting
-- Commit after each step
+## Previous Sessions
+See git history for refactoring session (game.js split into subsystems).

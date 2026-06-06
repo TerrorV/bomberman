@@ -379,24 +379,24 @@ function resizeCanvas(canvas) {
   const gw = cs * CONFIG.COLS;
   const gh = cs * CONFIG.ROWS;
 
-  // Keep canvas at native resolution for correct rendering
-  // Use CSS transform to scale visually
+  // Keep internal resolution at native size for correct game rendering
   canvas.width = gw;
   canvas.height = gh;
 
   // Reserve space for touch controls on mobile
   const isTouchDevice = document.body.classList.contains('touch-device');
-  const touchOverlayHeight = isTouchDevice ? 180 : 0;
+  const touchOverlayHeight = isTouchDevice ? 150 : 0;
   const availableHeight = vh - touchOverlayHeight;
 
-  // Scale to fit while maintaining aspect ratio
-  const scaleX = (vw - 16) / gw;
-  const scaleY = (availableHeight - 16) / gh;
-  const scale = Math.min(scaleX, scaleY, 1);
+  // Scale to fill the screen while maintaining aspect ratio
+  const scaleX = vw / gw;
+  const scaleY = availableHeight / gh;
+  const scale = Math.min(scaleX, scaleY);
 
-  // Apply CSS transform scaling instead of changing canvas dimensions
-  canvas.style.transformOrigin = 'center center';
-  canvas.style.transform = `scale(${scale})`;
+  // Set CSS width/height (controls layout size) while keeping internal resolution
+  // image-rendering: pixelated in CSS ensures crisp upscaling
+  canvas.style.width = `${Math.floor(gw * scale)}px`;
+  canvas.style.height = `${Math.floor(gh * scale)}px`;
 }
 
 function init() {
