@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/azure-static-web-apps.json",
+  "platform": {
+    "apiVersion": "2025-02-01"
+  },
+  "routes": [
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0"
+      }
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html"
+  },
+  "mimeTypes": {
+    "*.js": "text/javascript",
+    "*.css": "text/css",
+    "*.html": "text/html",
+    "*.png": "image/png",
+    "*.jpg": "image/jpeg",
+    "*.gif": "image/gif",
+    "*.svg": "image/svg+xml",
+    "*.json": "application/json"
+  }
+}
