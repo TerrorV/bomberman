@@ -13,17 +13,27 @@ html, body {
   align-items: center;
   justify-content: center;
   font-family: 'Segoe UI', Arial, sans-serif;
+  /* Prevent pull-to-refresh and rubber-banding on mobile */
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 #game-container {
   position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #gameCanvas {
   display: block;
   border: 2px solid #333;
   border-radius: 4px;
+  /* Ensure canvas respects aspect ratio */
+  max-width: 100vw;
+  max-height: 100vh;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /* Touch overlay — mobile controls */
@@ -41,9 +51,15 @@ html, body {
   z-index: 100;
 }
 
-/* Show touch controls only on touch devices */
+/* Show touch controls on touch devices */
 .touch-device #touch-overlay {
   display: flex;
+}
+
+/* On touch devices, reduce body padding so game doesn't overlap controls */
+.touch-device html, .touch-device body {
+  /* Reserve space at bottom for touch controls */
+  padding-bottom: 0;
 }
 
 .touch-dpad {
@@ -51,11 +67,13 @@ html, body {
   grid-template-columns: 60px 60px 60px;
   grid-template-rows: 60px 60px;
   gap: 4px;
+  pointer-events: auto;
 }
 
 .touch-bomb {
   display: flex;
   align-items: flex-end;
+  pointer-events: auto;
 }
 
 .dpad-btn,
@@ -74,7 +92,7 @@ html, body {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
   transition: background 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -99,21 +117,94 @@ html, body {
   border-radius: 50%;
 }
 
-/* Mobile sizing */
-@media (max-width: 768px) {
-  .dpad-btn,
-  .bomb-btn {
+/* ===== Responsive breakpoints ===== */
+
+/* Small phones (portrait) */
+@media (max-width: 480px) {
+  .dpad-btn {
     width: 50px;
     height: 50px;
     font-size: 18px;
+    border-radius: 8px;
   }
   .bomb-btn {
-    width: 60px;
-    height: 60px;
-    font-size: 26px;
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
   }
   .touch-dpad {
     grid-template-columns: 50px 50px 50px;
     grid-template-rows: 50px 50px;
+    gap: 3px;
+  }
+  #touch-overlay {
+    height: 140px;
+    padding: 8px 12px 20px;
+  }
+}
+
+/* Medium phones / small tablets */
+@media (max-width: 768px) {
+  .dpad-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 20px;
+  }
+  .bomb-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+  }
+  .touch-dpad {
+    grid-template-columns: 55px 55px 55px;
+    grid-template-rows: 55px 55px;
+    gap: 3px;
+  }
+  #touch-overlay {
+    height: 160px;
+    padding: 10px 16px 24px;
+  }
+}
+
+/* Landscape phones — less vertical space */
+@media (max-height: 500px) and (orientation: landscape) {
+  #touch-overlay {
+    height: 100px;
+    padding: 4px 12px 8px;
+  }
+  .dpad-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  .bomb-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+  .touch-dpad {
+    grid-template-columns: 36px 36px 36px;
+    grid-template-rows: 36px 36px;
+    gap: 2px;
+  }
+}
+
+/* Tablets and larger — use larger controls */
+@media (min-width: 1024px) and (hover: none) {
+  .dpad-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 26px;
+  }
+  .bomb-btn {
+    width: 80px;
+    height: 80px;
+    font-size: 34px;
+  }
+  .touch-dpad {
+    grid-template-columns: 70px 70px 70px;
+    grid-template-rows: 70px 70px;
+    gap: 5px;
   }
 }

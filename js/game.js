@@ -150,8 +150,9 @@ class Game {
         this._handlePlayerDeath();
       }
     }
-    // Restart on R
-    if ((this.gameState === 'gameover' || this.gameState === 'finalWin') && this.input.isPressed('KeyR')) {
+    // Restart on R or tap (mobile)
+    if ((this.gameState === 'gameover' || this.gameState === 'finalWin') && (this.input.isPressed('KeyR') || this._touchTap)) {
+      this._touchTap = false;
       this._checkHighScore();
       this.start();
     }
@@ -169,10 +170,17 @@ class Game {
     }
     if (this.gameState === 'start') {
       this.input.update();
-      if (this.input.isPressed('Enter')) { this.start(); this.gameState = 'playing'; }
+      if (this.input.isPressed('Enter') || this._touchTap) { this.start(); this.gameState = 'playing'; this._touchTap = false; }
       return;
     }
     this.input.update();
+  }
+
+  _onCanvasTap() {
+    // Tap canvas to start game from start/gameover screens
+    if (this.gameState === 'start' || this.gameState === 'gameover' || this.gameState === 'finalWin') {
+      this._touchTap = true;
+    }
   }
 
   _updatePlaying(dt) {
@@ -367,26 +375,51 @@ function gameLoop(timestamp) {
 function resizeCanvas(canvas) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const hudPad = 80; // HUD + bottom space
   const cs = CONFIG.CELL_SIZE;
   const gw = cs * CONFIG.COLS;
   const gh = cs * CONFIG.ROWS;
-  const scale = Math.min((vw - 16) / gw, (vh - hudPad - 16) / gh);
-  const w = Math.floor(gw * Math.min(scale, 1));
-  const h = Math.floor(gh * Math.min(scale, 1));
-  canvas.width = w;
-  canvas.height = h;
+
+  // Keep canvas at native resolution for correct rendering
+  // Use CSS transform to scale visually
+  canvas.width = gw;
+  canvas.height = gh;
+
+  // Reserve space for touch controls on mobile
+  const isTouchDevice = document.body.classList.contains('touch-device');
+  const touchOverlayHeight = isTouchDevice ? 180 : 0;
+  const availableHeight = vh - touchOverlayHeight;
+
+  // Scale to fit while maintaining aspect ratio
+  const scaleX = (vw - 16) / gw;
+  const scaleY = (availableHeight - 16) / gh;
+  const scale = Math.min(scaleX, scaleY, 1);
+
+  // Apply CSS transform scaling instead of changing canvas dimensions
+  canvas.style.transformOrigin = 'center center';
+  canvas.style.transform = `scale(${scale})`;
 }
 
 function init() {
   const canvas = document.getElementById('gameCanvas');
   game = new Game(canvas);
+  game._detectTouch();
+  if (game.touchControls) {
+    game.touchControls.show();
+  }
   game.start();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 
   resizeCanvas(canvas);
   window.addEventListener('resize', () => resizeCanvas(canvas));
+
+  // Canvas tap to start/restart on mobile
+  canvas.addEventListener('touchstart', e => {
+    game._onCanvasTap();
+  }, { passive: true });
+  canvas.addEventListener('click', () => {
+    game._onCanvasTap();
+  });
 }
 
 window.addEventListener('DOMContentLoaded', init);

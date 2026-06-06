@@ -19,8 +19,8 @@ class TouchControls {
     overlay.innerHTML = `
       <div class="touch-dpad">
         <button class="dpad-btn up" data-key="ArrowUp">▲</button>
-        <button class="dpad-btn down" data-key="ArrowDown">▼</button>
         <button class="dpad-btn left" data-key="ArrowLeft">◄</button>
+        <button class="dpad-btn down" data-key="ArrowDown">▼</button>
         <button class="dpad-btn right" data-key="ArrowRight">►</button>
       </div>
       <div class="touch-bomb">
@@ -46,6 +46,27 @@ class TouchControls {
       });
       btn.addEventListener('touchcancel', e => {
         e.preventDefault();
+        const key = btn.dataset.key;
+        this.activeKeys[key] = false;
+        this.game.input.setKey(key, false);
+      });
+    });
+
+    // Also support mouse events for desktop testing
+    overlay.querySelectorAll('.dpad-btn, .bomb-btn').forEach(btn => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const key = btn.dataset.key;
+        this.activeKeys[key] = true;
+        this.game.input.setKey(key, true);
+      });
+      btn.addEventListener('mouseup', e => {
+        e.preventDefault();
+        const key = btn.dataset.key;
+        this.activeKeys[key] = false;
+        this.game.input.setKey(key, false);
+      });
+      btn.addEventListener('mouseleave', e => {
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
         this.game.input.setKey(key, false);
