@@ -190,11 +190,18 @@ class Game {
     // 2. Bomb placement (with cooldown to prevent spam)
     this.bombCooldown -= dt;
     if (this.bombCooldown <= 0 && this.input.isDown('Space')) {
-      const bombData = this.player.placeBomb();
-      if (bombData) {
-        this.bombs.push(new Bomb(bombData.gridX, bombData.gridY, CONFIG));
-        soundFX.place();
-        this.bombCooldown = 0.15; // 150ms cooldown between bombs
+      // Check if there's already a bomb at the player's position
+      const alreadyHasBomb = this.bombs.some(b => b.gridX === this.player.gridX && b.gridY === this.player.gridY);
+      if (!alreadyHasBomb) {
+        const bombData = this.player.placeBomb();
+        if (bombData) {
+          this.bombs.push(new Bomb(bombData.gridX, bombData.gridY, CONFIG));
+          soundFX.place();
+          this.bombCooldown = 0.15; // 150ms cooldown between bombs
+        }
+      } else {
+        // Still apply cooldown so rapid pressing doesn't place a bomb later
+        this.bombCooldown = 0.15;
       }
     }
 
