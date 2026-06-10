@@ -39,6 +39,18 @@ const CONFIG = {
   BLOCK_DENSITY_MAX: 0.75,
   WALL_GRID_SPACING: 2, // Every-other-block pattern: walls at positions 1,3,5,7,9,11,13 (classic Bomberman grid)
   START_POS: { x: 0, y: 0 },
+  // Multiplayer settings
+  MAX_PLAYERS: 2,
+  MULTIPLAYER_MODE: false,
+  PLAYER_COLORS: ['#2ecc71', '#3498db'],
+  PLAYER_START_POSITIONS: [
+    { x: 0, y: 0 },
+    { x: 14, y: 12 }
+  ],
+  PLAYER_KEYBINDINGS: [
+    { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', bomb: 'Space' },
+    { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', bomb: 'Enter' }
+  ],
   ENEMY_SPAWNS: [
     { x: 12, y: 2, type: 'roamer' },
     { x: 2, y: 10, type: 'chaser' },
@@ -62,7 +74,7 @@ const CONFIG = {
     BLOCK: '#c4883d',
     BLOCK_LINE: '#a06b2a',
     GROUND: '#d4c4a0',
-    PLAYER: '#2ecc71',
+    PLAYER: '#2ecc71', // Legacy: use PLAYER_COLORS[0] in multiplayer
     PLAYER_EYE: '#27ae60',
     ENEMY: '#e74c3c',
     ENEMY_EYE: '#c0392b',

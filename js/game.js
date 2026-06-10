@@ -1,47 +1,58 @@
-// game.js - Main game loop ⚡
+// game.js - Main game loop with multiplayer support
 
 class Game {
   constructor(canvas) {
     this.ctx = canvas.getContext('2d');
-    this.input = new Input();
+    this.inputManager = new InputManager();
     this.ui = new UI(this.ctx, this.ctx.canvas);
 
     // state
     this.mapSystem = null;
-    this.player = null;
+    this.players = [];          // replaces this.player
+    this.currentPlayer = 0;     // index of player whose turn (for death/respawn)
     this.enemies = [];
     this.bombs = [];
     this.explosions = [];
     this.powerups = [];
     this.gameState = 'start';
-    this.score = 0;
+    this.score = 0;             // single-player score (backward compat)
     this.level = 1;
     this.bombCooldown = 0;
     this.deathAnimTimer = 0;
     this.timeLeft = CONFIG.GAME_TIME;
-    this.lives = CONFIG.MAX_LIVES;
+    this.lives = CONFIG.MAX_LIVES; // single-player lives (backward compat)
     this.particles = new ParticleSystem();
     this.powerupSystem = new PowerUpSystem(this);
     this.timer = new Timer(this);
     this.levelSystem = new Level(this);
     this.highScore = this._loadHighScore();
     this.touchControls = null;
+    this.touchControls2 = null;  // second player touch controls
     this.stateManager = new GameStateManager(this);
     this._levelTimer = 0;
     this._levelTransitionStep = 0;
     this._levelTransitionScore = 0;
+    this.localPlayerIndex = 0;   // for P2P: which player is local
   }
 
   _detectTouch() {
     if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
       document.body.classList.add('touch-device');
-      this.touchControls = new TouchControls(this, this.ctx.canvas);
+      if (CONFIG.MULTIPLAYER_MODE) {
+        this.touchControls = new TouchControls(this, this.ctx.canvas, 0);
+        this.touchControls2 = new TouchControls(this, this.ctx.canvas, 1);
+      } else {
+        this.touchControls = new TouchControls(this, this.ctx.canvas);
+      }
     }
   }
 
   _initTouch() {
     if (this.touchControls && !this.touchControls.isShowing()) {
       this.touchControls.show();
+    }
+    if (this.touchControls2 && !this.touchControls2.isShowing()) {
+      this.touchControls2.show();
     }
   }
 
@@ -62,22 +73,34 @@ class Game {
     };
   }
 
-  // B5+B6: returns true if a grid cell blocks the player
+  // Returns the first alive player (for backward compatibility with single-player code paths)
+  get player() {
+    if (this.players.length > 0) return this.players[0];
+    return null;
+  }
+
+  // B5+B6: returns true if a grid cell blocks a player
   _isBlocked(gx, gy) {
-    // Check bombs — can't walk into a bomb cell
+    // Check bombs - can't walk into a bomb cell
     for (const bomb of this.bombs) {
       if (bomb.gridX === gx && bomb.gridY === gy) {
-        // Classic Bomberman: player can walk out of their own bomb but not back in
-        // Use pixel-based overlap: as long as player's pixel area overlaps this bomb cell, allow passage
-        const cs = CONFIG.CELL_SIZE;
-        const pL = this.player.x, pR = this.player.x + cs;
-        const pT = this.player.y, pB = this.player.y + cs;
-        const bL = gx * cs, bR = (gx + 1) * cs;
-        const bT = gy * cs, bB = (gy + 1) * cs;
-        if (pL < bR && pR > bL && pT < bB && pB > bT) {
-          return false; // player still overlaps this cell — let them leave
+        // Classic rule: player can exit their own bomb cell but not re-enter
+        // Check if ANY alive player still overlaps this cell
+        let canPass = false;
+        for (const player of this.players) {
+          if (!player.alive) continue;
+          const cs = CONFIG.CELL_SIZE;
+          const pL = player.x, pR = player.x + cs;
+          const pT = player.y, pB = player.y + cs;
+          const bL = gx * cs, bR = (gx + 1) * cs;
+          const bT = gy * cs, bB = (gy + 1) * cs;
+          if (pL < bR && pR > bL && pT < bB && pB > bT) {
+            canPass = true;
+            break;
+          }
         }
-        return true;
+        if (!canPass) return true;
+        continue; // not blocked by this bomb, keep checking other things
       }
     }
     // Check alive enemies
@@ -89,7 +112,20 @@ class Game {
     return false;
   }
 
-
+  // Find the nearest alive player to an enemy (for AI targeting)
+  _nearestAlivePlayer(enemy) {
+    let nearest = null;
+    let minDist = Infinity;
+    for (const player of this.players) {
+      if (!player.alive) continue;
+      const dist = Math.abs(enemy.gridX - player.gridX) + Math.abs(enemy.gridY - player.gridY);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = player;
+      }
+    }
+    return nearest;
+  }
 
   render() {
     const ctx = this.ctx;
@@ -115,8 +151,10 @@ class Game {
       this.particles.render(ctx, cs);
     }
 
-    // Player
-    this.player.render(ctx, cx, cy);
+    // Players - render all
+    for (const player of this.players) {
+      player.render(ctx, cx, cy);
+    }
 
     // Enemies
     this.enemies.forEach(e => e.render(ctx, cx, cy, CONFIG));
@@ -151,14 +189,18 @@ class Game {
       }
     }
     // Restart on R or tap (mobile)
-    if ((this.gameState === 'gameover' || this.gameState === 'finalWin') && (this.input.isPressed('KeyR') || this._touchTap)) {
+    const anyRestart = this.inputManager.playerInputs.some(inp => inp.isPressed('KeyR'));
+    if ((this.gameState === 'gameover' || this.gameState === 'finalWin') && (anyRestart || this._touchTap)) {
       this._touchTap = false;
       this._checkHighScore();
       this.start();
     }
-    if (this.gameState === 'finalWin' && this.input.isPressed('Enter')) {
-      this._checkHighScore();
-      this.start();
+    if (this.gameState === 'finalWin') {
+      const anyEnter = this.inputManager.playerInputs.some(inp => inp.isPressed('Enter'));
+      if (anyEnter) {
+        this._checkHighScore();
+        this.start();
+      }
     }
     // Level transition countdown
     if (this.gameState === 'levelwin') {
@@ -169,15 +211,23 @@ class Game {
       }
     }
     if (this.gameState === 'start') {
-      this.input.update();
-      if (this.input.isPressed('Enter') || this._touchTap) { this.start(); this.gameState = 'playing'; this._touchTap = false; }
+      this.inputManager.updateAll();
+      // Toggle multiplayer mode with Tab
+      const anyTab = this.inputManager.playerInputs.some(inp => inp.isPressed('Tab'));
+      if (anyTab) {
+        CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
+      }
+      // Start game if any player presses their bomb key or Enter
+      const anyStart = this.inputManager.playerInputs.some(
+        inp => inp.isPressed(inp.bindings.bomb) || inp.isPressed('Enter')
+      );
+      if (anyStart || this._touchTap) { this.start(); this.gameState = 'playing'; this._touchTap = false; }
       return;
     }
-    this.input.update();
+    this.inputManager.updateAll();
   }
 
   _onCanvasTap() {
-    // Tap canvas to start game from start/gameover screens
     if (this.gameState === 'start' || this.gameState === 'gameover' || this.gameState === 'finalWin') {
       this._touchTap = true;
     }
@@ -186,30 +236,37 @@ class Game {
   _updatePlaying(dt) {
     const cs = CONFIG.CELL_SIZE;
     const canvas = this.ctx.canvas;
-    const cx = (canvas.width - cs * CONFIG.COLS) / 2;
-    const cy = (canvas.height - cs * CONFIG.ROWS) / 2;
 
-    // 1. Player movement
-    const dir = this.input.moveDir;
-    if (dir.dx !== 0 || dir.dy !== 0) {
-      this.player.move(dir.dx, dir.dy, this.mapSystem, (gx, gy) => this._isBlocked(gx, gy));
+    // 1. Each player moves independently
+    for (const player of this.players) {
+      if (!player.alive) continue;
+      const dir = player.input.moveDir;
+      if (dir.dx !== 0 || dir.dy !== 0) {
+        player.move(dir.dx, dir.dy, this.mapSystem, (gx, gy) => this._isBlocked(gx, gy));
+      }
     }
 
-    // 2. Bomb placement (with cooldown to prevent spam)
-    this.bombCooldown -= dt;
-    if (this.bombCooldown <= 0 && this.input.isDown('Space')) {
-      // Check if there's already a bomb at the player's position
-      const alreadyHasBomb = this.bombs.some(b => b.gridX === this.player.gridX && b.gridY === this.player.gridY);
-      if (!alreadyHasBomb) {
-        const bombData = this.player.placeBomb();
-        if (bombData) {
-          this.bombs.push(new Bomb(bombData.gridX, bombData.gridY, CONFIG));
-          soundFX.place();
-          this.bombCooldown = 0.15; // 150ms cooldown between bombs
+    // 2. Each player can place bombs
+    for (const player of this.players) {
+      if (!player.alive) continue;
+      if (!player._bombCooldown) player._bombCooldown = 0;
+      player._bombCooldown -= dt;
+
+      if (player._bombCooldown <= 0 && player.input.bombDown) {
+        const alreadyHasBomb = this.bombs.some(b => b.gridX === player.gridX && b.gridY === player.gridY);
+        if (!alreadyHasBomb) {
+          const bombData = player.placeBomb();
+          if (bombData) {
+            bombData.ownerIndex = player.playerIndex;
+            const bomb = new Bomb(bombData.gridX, bombData.gridY, CONFIG);
+            bomb.ownerIndex = player.playerIndex;
+            this.bombs.push(bomb);
+            soundFX.place();
+            player._bombCooldown = 0.15;
+          }
+        } else {
+          player._bombCooldown = 0.15;
         }
-      } else {
-        // Still apply cooldown so rapid pressing doesn't place a bomb later
-        this.bombCooldown = 0.15;
       }
     }
 
@@ -219,67 +276,68 @@ class Game {
 
     const processBomb = (bomb) => {
       const bombKey = bomb.gridX + ',' + bomb.gridY;
-      if (explodedSet.has(bombKey)) {
-        console.log('[CHAIN] Bomb ' + bombKey + ' already exploded, skipping');
-        return;
-      }
+      if (explodedSet.has(bombKey)) return;
       explodedSet.add(bombKey);
-      console.log('[CHAIN] processBomb ' + bombKey + ', explodedSet count: ' + explodedSet.size);
 
-      const fireCells = bomb.explode(CONFIG, this.player.fireRange, {
+      // Find the fire range of the owner
+      let ownerFireRange = CONFIG.FIRE_RANGE;
+      if (bomb.ownerIndex >= 0) {
+        const owner = this.players.find(p => p.playerIndex === bomb.ownerIndex);
+        if (owner) ownerFireRange = owner.fireRange;
+      } else {
+        // Fallback to first player's fire range for backward compat
+        ownerFireRange = this.players[0]?.fireRange || CONFIG.FIRE_RANGE;
+      }
+
+      const fireCells = bomb.explode(CONFIG, ownerFireRange, {
         WALL_CHECK: (x, y) => this.mapSystem.isWall(x, y),
         BLOCK_CHECK: (x, y) => this.mapSystem.isBlock(x, y),
-        // D14: Chain reaction - detonate other bombs reached by fire
         BOMB_CHECK: (x, y) => {
           const checkKey = x + ',' + y;
-          console.log('[CHAIN] BOMB_CHECK at (' + x + ',' + y + '), bombs count: ' + this.bombs.length);
           for (const other of this.bombs) {
             const otherKey = other.gridX + ',' + other.gridY;
             if (other.gridX === x && other.gridY === y && !explodedSet.has(otherKey)) {
-              console.log('[CHAIN] Found unexploded bomb ' + otherKey + ' at (' + x + ',' + y + '), chaining!');
-              processBomb(other); // recursively detonate
+              processBomb(other);
               return true;
             }
           }
           return false;
         },
       });
-      console.log('[CHAIN] Bomb ' + bombKey + ' produced ' + fireCells.length + ' fire cells');
       newExplosions.push(new Explosion(fireCells, CONFIG));
       // Spawn particles for each fire cell
       for (const cell of fireCells) {
         this.particles.burst(cell.x, cell.y, 'radial', 6);
       }
-      this.player.bombsPlaced--;
+      // Decrement bombs placed for the owner
+      if (bomb.ownerIndex >= 0) {
+        const owner = this.players.find(p => p.playerIndex === bomb.ownerIndex);
+        if (owner) owner.bombsPlaced--;
+      } else {
+        // Backward compat: decrement first player
+        if (this.players[0]) this.players[0].bombsPlaced--;
+      }
     };
 
-    console.log('[CHAIN] --- Frame: ' + this.bombs.length + ' bombs');
     this.bombs = this.bombs.filter(bomb => {
       const expired = bomb.update(dt);
       if (expired) {
-        console.log('[CHAIN] Bomb ' + bomb.gridX + ',' + bomb.gridY + ' expired, calling processBomb');
         processBomb(bomb);
         return false;
       }
       return true;
     });
 
-    // Remove bombs that were chain-detonated (already in explodedSet)
-    // These bombs had their explosion created via processBomb but their timer hadn't expired yet
+    // Remove bombs that were chain-detonated
     this.bombs = this.bombs.filter(bomb => {
       const key = bomb.gridX + ',' + bomb.gridY;
-      if (explodedSet.has(key)) {
-        console.log('[CHAIN] Removing chain-detonated bomb ' + key);
-        return false;
-      }
+      if (explodedSet.has(key)) return false;
       return true;
     });
 
-    console.log('[CHAIN] After filter: ' + this.bombs.length + ' bombs remain, ' + newExplosions.length + ' explosions created');
-
     // 4. Process explosions - track destroyed blocks BEFORE destroying, then spawn powerups
     let hasExplosion = false;
-    const destroyedBlockCells = []; // track which cells HAD blocks for powerup spawning
+    const destroyedBlockCells = [];
     for (const exp of newExplosions) {
       hasExplosion = true;
       for (const cell of exp.fireCells) {
@@ -289,14 +347,12 @@ class Game {
         }
       }
     }
-    // Play explosion sound once per batch (not per frame)
     if (hasExplosion) {
       soundFX.explosion();
     }
-    // Spawn powerups from cells that HAD blocks (before destruction)
     this.powerupSystem.spawnFromDestroyedBlocks(destroyedBlockCells);
 
-    // Merge new explosions (once)
+    // Merge new explosions
     const existingKeys = new Set(this.explosions.map(e => e.fireCells.map(c => c.x + ',' + c.y).join('-')));
     for (const exp of newExplosions) {
       const key = exp.fireCells.map(c => c.x + ',' + c.y).join('-');
@@ -311,24 +367,28 @@ class Game {
     // Kill enemies hit by explosions
     this.levelSystem.killEnemiesInExplosions(this.explosions, newExplosions);
 
-    // D13: Check if player is hit by explosions
-    this.levelSystem.checkPlayerExplosionHit(this.explosions, newExplosions);
-
-    // 6. Update enemies (D5/D11: pass bomb-aware blocked callback)
-    for (const enemy of this.enemies) {
-      if (!enemy.alive) continue;
-      enemy.update(dt, this.mapSystem, this.player, (gx, gy) => {
-        // Check bombs - enemies can't walk through bombs
-        for (const bomb of this.bombs) {
-          if (bomb.gridX === gx && bomb.gridY === gy) return true;
-        }
-        return false;
-      });
-      this.levelSystem.checkEnemyCollision(enemy);
+    // Check ALL players for explosion hits
+    for (const player of this.players) {
+      this.levelSystem.checkPlayerExplosionHit(player, this.explosions, newExplosions);
     }
 
-    // 7. Check powerup pickup + speed timer countdown
-    this.powerupSystem.processPickup(dt);
+    // 6. Update enemies - target nearest player
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const targetPlayer = this._nearestAlivePlayer(enemy);
+      if (targetPlayer) {
+        enemy.update(dt, this.mapSystem, targetPlayer, (gx, gy) => {
+          for (const bomb of this.bombs) {
+            if (bomb.gridX === gx && bomb.gridY === gy) return true;
+          }
+          return false;
+        });
+        this.levelSystem.checkEnemyCollision(enemy, this.players);
+      }
+    }
+
+    // 7. Check powerup pickup for ALL players + speed timer
+    this.powerupSystem.processPickupForAll(this.players, dt);
 
     // 8. Timer countdown + win check
     const timerResult = this.timer.update(dt);
@@ -356,8 +416,6 @@ class Game {
   _handlePlayerDeath() {
     this.levelSystem.handleDeath();
   }
-
-
 }
 
 let game = null;
@@ -379,22 +437,17 @@ function resizeCanvas(canvas) {
   const gw = cs * CONFIG.COLS;
   const gh = cs * CONFIG.ROWS;
 
-  // Keep internal resolution at native size for correct game rendering
   canvas.width = gw;
   canvas.height = gh;
 
-  // Reserve space for touch controls on mobile
   const isTouchDevice = document.body.classList.contains('touch-device');
   const touchOverlayHeight = isTouchDevice ? 150 : 0;
   const availableHeight = vh - touchOverlayHeight;
 
-  // Scale to fill the screen while maintaining aspect ratio
   const scaleX = vw / gw;
   const scaleY = availableHeight / gh;
   const scale = Math.min(scaleX, scaleY);
 
-  // Set CSS width/height (controls layout size) while keeping internal resolution
-  // image-rendering: pixelated in CSS ensures crisp upscaling
   canvas.style.width = `${Math.floor(gw * scale)}px`;
   canvas.style.height = `${Math.floor(gh * scale)}px`;
 }
@@ -406,6 +459,9 @@ function init() {
   if (game.touchControls) {
     game.touchControls.show();
   }
+  if (game.touchControls2) {
+    game.touchControls2.show();
+  }
   game.start();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
@@ -413,7 +469,6 @@ function init() {
   resizeCanvas(canvas);
   window.addEventListener('resize', () => resizeCanvas(canvas));
 
-  // Canvas tap to start/restart on mobile
   canvas.addEventListener('touchstart', e => {
     game._onCanvasTap();
   }, { passive: true });

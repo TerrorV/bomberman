@@ -5,6 +5,7 @@ class Bomb {
     this.gridY = gridY;
     this.timer = config.BOMB_COUNTDOWN;
     this.pulse = 0;
+    this.ownerIndex = -1; // tracks which player placed this bomb
   }
 
   update(dt) {

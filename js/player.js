@@ -1,12 +1,20 @@
 // player.js - Player movement, bombs, power-ups
 class Player {
-  constructor(config) {
+  constructor(config, playerIndex = 0) {
     this.config = config;
+    this.playerIndex = playerIndex;
+    this.playerColor = config.PLAYER_COLORS[playerIndex] || config.COLORS.PLAYER;
+    this.input = null; // will be set by game
+    this.score = 0;
+    this.lives = config.MAX_LIVES;
+    this.eliminated = false;
+    this.networkMoveDir = null;
+    this.networkBomb = false;
     this.reset();
   }
 
   reset() {
-    const sp = this.config.START_POS;
+    const sp = this.config.PLAYER_START_POSITIONS[this.playerIndex] || this.config.START_POS;
     this.gridX = sp.x;
     this.gridY = sp.y;
     this.x = sp.x * this.config.CELL_SIZE;
@@ -158,7 +166,7 @@ class Player {
     // Body
     ctx.beginPath();
     ctx.arc(cx, cy + 2, r, 0, Math.PI * 2);
-    ctx.fillStyle = this.config.COLORS.PLAYER;
+    ctx.fillStyle = this.playerColor;
     ctx.fill();
     ctx.strokeStyle = '#27ae60';
     ctx.lineWidth = 2;
@@ -188,5 +196,11 @@ class Player {
     ctx.beginPath();
     ctx.ellipse(cx + 8, cy + r + 2 + footOffset, 5, 3 - footOffset * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Player number indicator
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${this.playerIndex + 1}`, cx, cy + 5);
   }
 }

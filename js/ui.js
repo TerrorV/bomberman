@@ -10,6 +10,14 @@ class UI {
   renderHUD(state) {
     if (state.gameState !== 'playing') return;
 
+    if (CONFIG.MULTIPLAYER_MODE) {
+      this._renderMultiplayerHUD(state);
+    } else {
+      this._renderSinglePlayerHUD(state);
+    }
+  }
+
+  _renderSinglePlayerHUD(state) {
     const ctx = this.ctx;
     const fontSize = 18;
     ctx.font = `bold ${fontSize}px Segoe UI, Arial`;
@@ -47,6 +55,63 @@ class UI {
     ctx.fillText(timeStr, statsX, statsY + 30);
   }
 
+  _renderMultiplayerHUD(state) {
+    const ctx = this.ctx;
+    const canvas = this.canvas;
+    const numPlayers = state.players.length;
+    const sectionWidth = canvas.width / numPlayers;
+
+    // Top bar background
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, canvas.width, 50);
+
+    for (let i = 0; i < numPlayers; i++) {
+      const player = state.players[i];
+      const x = sectionWidth * i;
+
+      // Background strip in player color
+      ctx.fillStyle = CONFIG.PLAYER_COLORS[i] + '40'; // 40 = ~25% opacity hex
+      ctx.fillRect(x, 0, sectionWidth, 50);
+
+      // Border between players
+      if (i > 0) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 50);
+        ctx.stroke();
+      }
+
+      // Player label + eliminated status
+      ctx.fillStyle = CONFIG.PLAYER_COLORS[i];
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'left';
+      const label = player.eliminated ? `P${i + 1} ✗` : `P${i + 1}`;
+      ctx.fillText(label, x + 4, 12);
+
+      // Score
+      ctx.fillStyle = '#fff';
+      ctx.font = '13px monospace';
+      ctx.fillText(`Score: ${player.score || 0}`, x + 4, 28);
+
+      // Lives
+      ctx.fillText(`Lives: ${player.lives || 0}`, x + 4, 42);
+    }
+
+    // Timer centered at bottom
+    const fontSize = 18;
+    const mins = Math.floor(state.timeLeft / 60);
+    const secs = Math.floor(state.timeLeft) % 60;
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    const urgent = state.timeLeft <= 30;
+    ctx.fillStyle = urgent ? '#e74c3c' : '#fff';
+    ctx.font = urgent ? `bold ${fontSize + 4}px Segoe UI, Arial` : `bold ${fontSize}px Segoe UI, Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(timeStr, canvas.width / 2, canvas.height - 8);
+  }
+
   // --- Start screen ---
   renderStartScreen() {
     const ctx = this.ctx;
@@ -60,17 +125,35 @@ class UI {
     ctx.textBaseline = 'middle';
 
     ctx.font = 'bold 64px Segoe UI, Arial';
-    ctx.fillText('BOMBERMAN', canvas.width / 2, canvas.height / 2 - 80);
+    ctx.fillText('BOMBERMAN', canvas.width / 2, canvas.height / 2 - 100);
+
+    // Mode indicator
+    ctx.font = 'bold 20px Segoe UI, Arial';
+    ctx.fillStyle = CONFIG.MULTIPLAYER_MODE ? '#3498db' : '#2ecc71';
+    ctx.fillText(
+      CONFIG.MULTIPLAYER_MODE ? '2-Player Mode' : '1-Player Mode',
+      canvas.width / 2, canvas.height / 2 - 50
+    );
 
     if (Math.floor(Date.now() / 500) % 2) {
-      ctx.font = 'bold 24px Segoe UI, Arial';
+      ctx.font = 'bold 22px Segoe UI, Arial';
       ctx.fillStyle = '#f1c40f';
-      ctx.fillText('Press ENTER to play!', canvas.width / 2, canvas.height / 2 + 20);
+      ctx.fillText('Press ENTER to play!', canvas.width / 2, canvas.height / 2);
     }
 
-    ctx.font = '18px Segoe UI, Arial';
+    ctx.font = '16px Segoe UI, Arial';
     ctx.fillStyle = '#bbb';
-    ctx.fillText('WASD / Arrows — Move  |  Space — Bomb  |  R — Restart', canvas.width / 2, canvas.height / 2 + 80);
+    ctx.fillText('TAB — Toggle 1P / 2P Mode', canvas.width / 2, canvas.height / 2 + 50);
+
+    if (CONFIG.MULTIPLAYER_MODE) {
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillText('P1: WASD + Space', canvas.width / 2, canvas.height / 2 + 80);
+      ctx.fillStyle = '#3498db';
+      ctx.fillText('P2: Arrows + Enter', canvas.width / 2, canvas.height / 2 + 100);
+    } else {
+      ctx.fillStyle = '#bbb';
+      ctx.fillText('WASD / Arrows — Move  |  Space — Bomb  |  R — Restart', canvas.width / 2, canvas.height / 2 + 80);
+    }
   }
 
   // --- Game over / win text ---
@@ -86,7 +169,27 @@ class UI {
     ctx.font = 'bold 36px Segoe UI, Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(state.gameState === 'gameover' ? 'GAME OVER' : 'YOU WIN!', canvas.width / 2, canvas.height / 2);
+
+    if (CONFIG.MULTIPLAYER_MODE && state.gameState === 'gameover') {
+      // In multiplayer, show who survived
+      const alivePlayers = state.players.filter(p => p.alive && !p.eliminated);
+      if (alivePlayers.length === 1) {
+        ctx.fillText(`PLAYER ${alivePlayers[0].playerIndex + 1} WINS!`, canvas.width / 2, canvas.height / 2 - 40);
+      } else if (alivePlayers.length > 1) {
+        const names = alivePlayers.map(p => `P${p.playerIndex + 1}`).join(' & ');
+        ctx.fillText(`${names} WIN!`, canvas.width / 2, canvas.height / 2 - 40);
+      } else {
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
+      }
+      // Show final scores
+      ctx.font = '24px Segoe UI, Arial';
+      for (let i = 0; i < state.players.length; i++) {
+        ctx.fillStyle = CONFIG.PLAYER_COLORS[i];
+        ctx.fillText(`P${i + 1}: ${state.players[i].score || 0} pts`, canvas.width / 2, canvas.height / 2 + i * 30);
+      }
+    } else {
+      ctx.fillText(state.gameState === 'gameover' ? 'GAME OVER' : 'YOU WIN!', canvas.width / 2, canvas.height / 2);
+    }
     this.renderHighScore(state);
   }
 
