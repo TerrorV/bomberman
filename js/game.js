@@ -5,6 +5,13 @@ class Game {
     this.ctx = canvas.getContext('2d');
     this.inputManager = new InputManager();
     this.ui = new UI(this.ctx, this.ctx.canvas);
+    // Register default player inputs so start screen can detect key presses
+    this.inputManager.addPlayerInput({
+      up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', bomb: 'Space'
+    });
+    this.inputManager.addPlayerInput({
+      up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', bomb: 'Enter'
+    });
 
     // state
     this.mapSystem = null;
@@ -134,30 +141,33 @@ class Game {
 
     const { cs, cx, cy } = this._getGridOffset();
 
-    // Map
-    this.mapSystem.render(ctx, cx, cy);
+    // Only render game elements when mapSystem exists (not on start screen)
+    if (this.mapSystem) {
+      // Map
+      this.mapSystem.render(ctx, cx, cy);
 
-    // Powerups
-    this.powerups.forEach(p => p.render(ctx, cx, cy, CONFIG));
+      // Powerups
+      this.powerups.forEach(p => p.render(ctx, cx, cy, CONFIG));
 
-    // Bombs
-    this.bombs.forEach(b => b.render(ctx, cx, cy, CONFIG));
+      // Bombs
+      this.bombs.forEach(b => b.render(ctx, cx, cy, CONFIG));
 
-    // Explosions
-    this.explosions.forEach(e => e.render(ctx, cx, cy, CONFIG));
+      // Explosions
+      this.explosions.forEach(e => e.render(ctx, cx, cy, CONFIG));
 
-    // Particles
-    if (this.gameState === 'playing' || this.gameState === 'dying') {
-      this.particles.render(ctx, cs);
+      // Particles
+      if (this.gameState === 'playing' || this.gameState === 'dying') {
+        this.particles.render(ctx, cs);
+      }
+
+      // Players - render all
+      for (const player of this.players) {
+        player.render(ctx, cx, cy);
+      }
+
+      // Enemies
+      this.enemies.forEach(e => e.render(ctx, cx, cy, CONFIG));
     }
-
-    // Players - render all
-    for (const player of this.players) {
-      player.render(ctx, cx, cy);
-    }
-
-    // Enemies
-    this.enemies.forEach(e => e.render(ctx, cx, cy, CONFIG));
 
     // HUD
     this.ui.renderHUD(this);
@@ -462,7 +472,6 @@ function init() {
   if (game.touchControls2) {
     game.touchControls2.show();
   }
-  game.start();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 

@@ -11,8 +11,25 @@ class GameStateManager {
     // Generate map
     this.game.mapSystem = MapSystem.create(CONFIG);
 
-    // Reset player
-    this.game.player = new Player(CONFIG);
+    // Create players
+    this.game.players = [];
+    const numPlayers = CONFIG.MULTIPLAYER_MODE ? CONFIG.MAX_PLAYERS : 1;
+
+    // Clear old inputs to prevent accumulation on restart
+    this.game.inputManager.playerInputs = [];
+
+    for (let i = 0; i < numPlayers; i++) {
+      const player = new Player(CONFIG, i);
+      const bindings = CONFIG.PLAYER_KEYBINDINGS[i];
+      player.input = this.game.inputManager.addPlayerInput({
+        up: bindings.up,
+        down: bindings.down,
+        left: bindings.left,
+        right: bindings.right,
+        bomb: bindings.bomb
+      });
+      this.game.players.push(player);
+    }
 
     // Reset state
     this.game.score = 0;
