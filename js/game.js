@@ -237,8 +237,18 @@ class Game {
     this.inputManager.updateAll();
   }
 
-  _onCanvasTap() {
-    if (this.gameState === 'start' || this.gameState === 'gameover' || this.gameState === 'finalWin') {
+  _onCanvasTap(x, y) {
+    if (this.gameState === 'start') {
+      // Upper half of screen: toggle mode (1P / 2P)
+      if (y < this.ctx.canvas.height / 2) {
+        CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
+      } else {
+        // Lower half: start game
+        this._touchTap = true;
+      }
+      return;
+    }
+    if (this.gameState === 'gameover' || this.gameState === 'finalWin') {
       this._touchTap = true;
     }
   }
@@ -479,10 +489,17 @@ function init() {
   window.addEventListener('resize', () => resizeCanvas(canvas));
 
   canvas.addEventListener('touchstart', e => {
-    game._onCanvasTap();
+    const touch = e.touches[0] || e.changedTouches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) / rect.width * canvas.width;
+    const y = (touch.clientY - rect.top) / rect.height * canvas.height;
+    game._onCanvasTap(x, y);
   }, { passive: true });
-  canvas.addEventListener('click', () => {
-    game._onCanvasTap();
+  canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width * canvas.width;
+    const y = (e.clientY - rect.top) / rect.height * canvas.height;
+    game._onCanvasTap(x, y);
   });
 }
 

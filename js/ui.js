@@ -143,7 +143,7 @@ class UI {
 
     ctx.font = '16px Segoe UI, Arial';
     ctx.fillStyle = '#bbb';
-    ctx.fillText('TAB — Toggle 1P / 2P Mode', canvas.width / 2, canvas.height / 2 + 50);
+    ctx.fillText('TAB or tap mode above — Toggle 1P / 2P', canvas.width / 2, canvas.height / 2 + 50);
 
     if (CONFIG.MULTIPLAYER_MODE) {
       ctx.fillStyle = '#2ecc71';

@@ -10,8 +10,8 @@ class InputManager {
       for (const input of this.playerInputs) {
         input.keys[e.code] = true;
       }
-      // Prevent scrolling for all game keys
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(e.code)) {
+      // Prevent scrolling for all game keys, and prevent Tab from cycling browser focus
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter', 'Tab'].includes(e.code)) {
         e.preventDefault();
       }
     });
