@@ -35,7 +35,7 @@ class Level {
   }
 
   _handleSinglePlayerDeath() {
-    this.game.lives--;
+    // Lives already decremented in _killPlayer(), so just check and respawn
     if (this.game.lives <= 0) {
       this.game.gameState = 'gameover';
       this.game.player.alive = false;
