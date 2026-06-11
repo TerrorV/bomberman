@@ -36,19 +36,19 @@ class TouchControls {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = true;
-        this.game.input.setKey(key, true);
+        this.game.inputManager.setKey(key, true);
       });
       btn.addEventListener('touchend', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        this.game.input.setKey(key, false);
+        this.game.inputManager.setKey(key, false);
       });
       btn.addEventListener('touchcancel', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        this.game.input.setKey(key, false);
+        this.game.inputManager.setKey(key, false);
       });
     });
 
@@ -58,18 +58,18 @@ class TouchControls {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = true;
-        this.game.input.setKey(key, true);
+        this.game.inputManager.setKey(key, true);
       });
       btn.addEventListener('mouseup', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        this.game.input.setKey(key, false);
+        this.game.inputManager.setKey(key, false);
       });
       btn.addEventListener('mouseleave', e => {
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        this.game.input.setKey(key, false);
+        this.game.inputManager.setKey(key, false);
       });
     });
   }

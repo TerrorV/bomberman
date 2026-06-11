@@ -29,6 +29,13 @@ class InputManager {
     return input;
   }
 
+  setKey(code, value) {
+    // Propagate key state to all player inputs (mirrors keyboard behavior)
+    for (const input of this.playerInputs) {
+      input.setKey(code, value);
+    }
+  }
+
   updateAll() {
     for (const input of this.playerInputs) {
       input.update();
