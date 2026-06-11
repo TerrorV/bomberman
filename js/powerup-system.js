@@ -25,6 +25,11 @@ class PowerUpSystem {
   _processPickupForPlayer(player, dt) {
     if (!player.alive) return;
 
+    // Invincibility timer countdown per player
+    if (player.invincible > 0) {
+      player.invincible -= dt;
+    }
+
     // Speed timer countdown per player
     if (player.speedBoostTimer > 0) {
       player.speedBoostTimer -= dt;
