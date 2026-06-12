@@ -1,17 +1,40 @@
 // map.js - Map rendering and interaction
-class MapSystem {
-  constructor(grid, config) {
-    this.grid = grid; // 2D array
-    this.config = config;
+
+// --- Seeded PRNG (mulberry32 algorithm) ---
+// Deterministic random number generator for identical map generation across host/client
+class SeededRandom {
+  constructor(seed) {
+    this.seed = seed;
   }
 
-  static create(config, level = 1) {
+  // Returns a pseudo-random float in [0, 1)
+  next() {
+    let t = this.seed += 0x6d2b79f5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+}
+
+class MapSystem {
+  constructor(grid, config, seed = null) {
+    this.grid = grid; // 2D array
+    this.config = config;
+    this.seed = seed; // store seed for network sync
+  }
+
+  static create(config, level = 1, seed = null) {
     const { COLS, ROWS, TILE, START_POS, ENEMY_SPAWNS } = config;
     let grid;
 
+    // If no seed provided, generate a random one
+    if (seed === null) {
+      seed = Math.floor(Math.random() * 2147483647);
+    }
+
     // Procedural generation (D9 fix)
     if (level === 1 || !config.MAP_ROWS || level <= 1) {
-      grid = MapSystem._genProcedural(config, level);
+      grid = MapSystem._genProcedural(config, level, seed);
     } else {
       // Legacy: use static MAP_ROWS
       grid = [];
@@ -19,11 +42,14 @@ class MapSystem {
         grid.push(config.MAP_ROWS.slice(i * COLS, (i + 1) * COLS));
       }
     }
-    return new MapSystem(grid, config);
+    return new MapSystem(grid, config, seed);
   }
 
-  static _genProcedural(config, level) {
+  static _genProcedural(config, level, seed) {
     const { COLS, ROWS, TILE, START_POS, ENEMY_SPAWNS, BLOCK_DENSITY_LEVEL1, BLOCK_DENSITY_PER_LEVEL, BLOCK_DENSITY_MAX, WALL_GRID_SPACING } = config;
+    // Create seeded PRNG for deterministic map generation
+    const rng = new SeededRandom(seed);
+
     // Build blank grid (all empty)
     const grid = [];
     for (let y = 0; y < ROWS; y++) {
@@ -44,9 +70,10 @@ class MapSystem {
     );
 
     // 3) Fill remaining floor tiles with blocks at the configured density (including outer border)
+    // Uses seeded RNG for deterministic results
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
-        if (grid[y][x] === TILE.EMPTY && Math.random() < density) {
+        if (grid[y][x] === TILE.EMPTY && rng.next() < density) {
           grid[y][x] = TILE.BLOCK;
         }
       }
