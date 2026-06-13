@@ -1,5 +1,5 @@
 // connection-ui.js — Host/Join UI flow for WebRTC multiplayer
-// Coordinates WebRTCManager + QRSignaler to handle the full signaling dance
+// Coordinates NetworkManager + QRSignaler to handle the full signaling dance
 
 class ConnectionUI {
   constructor() {
@@ -17,8 +17,17 @@ class ConnectionUI {
     this.submitSdpBtn = null;
     this.isVisible = false;
 
-    // Callbacks set by game
-    this.onConnected = null; // (mapSeed) => void — called when connection succeeds
+    // The NetworkManager instance (created during host/join flow)
+    this._network = null;
+
+    // QRSignaler instance for camera scanning
+    this._qrSignaler = null;
+
+    // Callback set by game: (networkManager, mapSeed) => void
+    this.onConnected = null;
+
+    // Callback for paste fallback submit
+    this._submitSDPCallback = null;
   }
 
   /**
@@ -26,7 +35,6 @@ class ConnectionUI {
    */
   init() {
     this.overlay = document.getElementById('connection-overlay');
-    this.panel = document.getElementById('connection-panel');
     this.titleEl = document.getElementById('connection-title');
     this.hostBtn = document.getElementById('btn-host');
     this.joinBtn = document.getElementById('btn-join');
@@ -77,12 +85,12 @@ class ConnectionUI {
 
   _resetState() {
     this._showButtons();
-    this.qrDisplayArea.innerHTML = '';
-    this.scannerRegion.innerHTML = '';
-    this.statusEl.textContent = '';
-    this.pasteSection.style.display = 'none';
-    this.sdpTextInput.value = '';
-    this.titleEl.textContent = 'Online Multiplayer';
+    if (this.qrDisplayArea) this.qrDisplayArea.innerHTML = '';
+    if (this.scannerRegion) this.scannerRegion.innerHTML = '';
+    if (this.statusEl) this.statusEl.textContent = '';
+    if (this.pasteSection) this.pasteSection.style.display = 'none';
+    if (this.sdpTextInput) this.sdpTextInput.value = '';
+    if (this.titleEl) this.titleEl.textContent = 'Online Multiplayer';
   }
 
   _showButtons() {
@@ -105,17 +113,15 @@ class ConnectionUI {
 
   async _startHost() {
     this._hideButtons();
-    this.titleEl.textContent = 'Hosting Game';
     this._setStatus('Creating WebRTC offer...');
 
-    // Create the peer connection
-    const network = new WebRTCManager(0); // host = index 0
+    // Create NetworkManager — host will set isHost internally
+    const network = new NetworkManager();
     this._network = network;
 
     try {
-      // Generate SDP offer
-      const offer = await network.createOffer();
-      const offerBase64 = btoa(JSON.stringify(offer));
+      // initializeHost() returns base64-encoded SDP offer
+      const offerBase64 = await network.initializeHost();
 
       // Show as QR code
       const success = this._generateQR(offerBase64);
@@ -126,26 +132,38 @@ class ConnectionUI {
         this._setStatus('QR generation failed. Use text paste instead.');
       }
 
-      // Also show paste fallback
-      this._showPasteFallback('Host: Scan the QR above OR wait for pasted answer below.');
+      // Show paste fallback so joiner can paste answer
+      this._showPasteFallback('Host: Scan the QR above OR paste the answer below.');
 
-      // Start listening for pasted SDP
-      this._hostWaitingForAnswer = true;
-
-      // When answer arrives (via paste or scan), complete the connection
-      this._onAnswerReceived = async (answerBase64) => {
+      // When answer arrives (via camera scan or paste), complete connection
+      this._submitSDPCallback = async (answerBase64) => {
         this._setStatus('Answer received! Establishing connection...');
         try {
-          const answerObj = JSON.parse(atob(answerBase64));
-          await network.setRemoteAnswer(answerObj);
-          await this._onNetworkReady();
+          await network.acceptAnswer(answerBase64);
+          // Wait for data channel to open
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Connection timeout'));
+            }, 10000);
+            const checkConnected = setInterval(() => {
+              if (network.isConnected) {
+                clearTimeout(timeout);
+                clearInterval(checkConnected);
+                resolve();
+              }
+            }, 100);
+          });
+          await this._onNetworkReady(network, true);
         } catch (e) {
-          this._setStatus('Invalid answer SDP: ' + e.message);
+          this._setStatus('Connection failed: ' + e.message);
+          this._showButtons();
         }
       };
 
-      // Wire up paste submit for host
-      this._submitSDPCallback = this._onAnswerReceived;
+      // Also start camera scanner so host can scan the client's answer QR
+      this._startQRScanner((scannedBase64) => {
+        this._submitSDPCallback(scannedBase64);
+      });
 
     } catch (err) {
       this._setStatus('Failed to create offer: ' + err.message);
@@ -157,23 +175,13 @@ class ConnectionUI {
 
   async _startJoin() {
     this._hideButtons();
-    this.titleEl.textContent = 'Joining Game';
     this._setStatus('Scanning for host QR code...');
 
-    const network = new WebRTCManager(1); // client = index 1
-    this._network = network;
-
-    // Start camera scanner
+    // Start camera scanner to read host's offer QR
     const scanStarted = await this._startQRScanner((scannedBase64) => {
       // Scanned the host's offer QR
       this._setStatus('Offer scanned! Creating answer...');
-      try {
-        const offerObj = JSON.parse(atob(scannedBase64));
-        this._processHostOffer(offerObj);
-      } catch (e) {
-        this._setStatus('Invalid offer QR: ' + e.message);
-        this._showButtons();
-      }
+      this._processScannedOffer(scannedBase64);
     });
 
     if (!scanStarted) {
@@ -181,73 +189,99 @@ class ConnectionUI {
       this._setStatus('Camera unavailable. Paste the host\'s SDP string below.');
       this._showPasteFallback('Join: Paste the host\'s base64 offer SDP below.');
       this._submitSDPCallback = async (offerBase64) => {
-        try {
-          const offerObj = JSON.parse(atob(offerBase64));
-          this._processHostOffer(offerObj);
-        } catch (e) {
-          this._setStatus('Invalid offer SDP: ' + e.message);
-        }
+        this._processScannedOffer(offerBase64);
       };
     }
   }
 
-  async _processHostOffer(offerObj) {
+  async _processScannedOffer(offerBase64) {
     try {
       // Stop scanner since we got the offer
       this._stopQRScanner();
 
-      // Create answer
-      const answer = await this._network.createAnswer(offerObj);
-      const answerBase64 = btoa(JSON.stringify(answer));
+      // Create NetworkManager and initialize as client
+      const network = new NetworkManager();
+      this._network = network;
+
+      // initializeClient() returns base64-encoded SDP answer
+      const answerBase64 = await network.initializeClient(offerBase64);
 
       // Show answer as QR for host to scan
-      this._setStatus('Show this QR to the host. Scanning back...');
+      this._setStatus('Show this QR to the host...');
       const qrOk = this._generateQR(answerBase64);
 
       if (!qrOk) {
-        this._setStatus('QR failed. Host can also paste this text.');
-        this._showPasteFallback('Your answer SDP — show to host:');
-        // Pre-fill paste area so host can copy
+        this._setStatus('QR failed. Copy this text to the host.');
+        this._showPasteFallback('Your answer SDP — give to host:');
         if (this.sdpTextInput) {
           this.sdpTextInput.value = answerBase64;
+          this.sdpTextInput.readOnly = true;
         }
       }
 
-      // Also restart scanner so host can scan our answer QR by pasting
-      // (host side handles paste)
-      this._setStatus('Waiting for host to connect...');
+      // Wait for data channel to open (connection established)
+      this._setStatus('Waiting for connection...');
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 15000);
+        const checkConnected = setInterval(() => {
+          if (network.isConnected) {
+            clearTimeout(timeout);
+            clearInterval(checkConnected);
+            resolve();
+          }
+        }, 100);
+      });
+
+      await this._onNetworkReady(network, false);
 
     } catch (err) {
-      this._setStatus('Failed to create answer: ' + err.message);
+      this._setStatus('Connection failed: ' + err.message);
       this._showButtons();
     }
   }
 
   // ---- After Network Ready ----
 
-  async _onNetworkReady() {
+  async _onNetworkReady(network, isHost) {
     // Stop any ongoing scanning
     this._stopQRScanner();
-    this.qrDisplayArea.innerHTML = '';
-    this.scannerRegion.innerHTML = '';
-    this.pasteSection.style.display = 'none';
-
-    // Generate map seed for the game
-    const mapSeed = Math.floor(Math.random() * 2147483647);
+    if (this.qrDisplayArea) this.qrDisplayArea.innerHTML = '';
+    if (this.scannerRegion) this.scannerRegion.innerHTML = '';
+    if (this.pasteSection) this.pasteSection.style.display = 'none';
 
     this._setStatus('Connected! Starting game...');
 
-    // Send map seed to peer so both generate identical maps
-    this._network.send(JSON.stringify({
-      type: 'init',
-      mapSeed: mapSeed
-    }));
+    // Host generates map seed and sends it to client
+    let mapSeed = null;
+    if (isHost) {
+      mapSeed = Math.floor(Math.random() * 2147483647);
+      // Send seed to client via data channel
+      try {
+        network.send(JSON.stringify({ type: 'seed', value: mapSeed }));
+      } catch(e) { /* ignore send errors */ }
+    } else {
+      // Client: wait for seed from host
+      mapSeed = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Seed timeout')), 10000);
+        // Temporarily override onMessage to catch seed
+        const origOnMessage = network.onMessage;
+        network.onMessage = (data) => {
+          let msg;
+          try { msg = JSON.parse(data); } catch(e) { return; }
+          if (msg.type === 'seed') {
+            clearTimeout(timeout);
+            network.onMessage = origOnMessage; // restore
+            resolve(msg.value);
+          }
+        };
+      });
+    }
 
     // Hide overlay and call callback
     setTimeout(() => {
       this.hide();
       if (this.onConnected) {
-        this.onConnected(mapSeed);
+        this.onConnected(network, mapSeed);
       }
     }, 500);
   }
@@ -255,7 +289,6 @@ class ConnectionUI {
   // ---- QR Helpers ----
 
   _generateQR(text) {
-    // Use the QRSignaler class
     if (typeof QRSignaler !== 'undefined') {
       const signer = new QRSignaler();
       return signer.generateQR(text, 'qr-display-area');
@@ -289,13 +322,17 @@ class ConnectionUI {
   _showPasteFallback(label) {
     if (this.pasteSection) {
       this.pasteSection.style.display = 'block';
-      // Update label if needed
       let labelEl = this.pasteSection.querySelector('p');
       if (!labelEl) {
         labelEl = document.createElement('p');
         this.pasteSection.insertBefore(labelEl, this.pasteSection.firstChild);
       }
       labelEl.textContent = label;
+      // Reset textarea for input
+      if (this.sdpTextInput) {
+        this.sdpTextInput.readOnly = false;
+        this.sdpTextInput.value = '';
+      }
     }
   }
 
@@ -310,13 +347,11 @@ class ConnectionUI {
 
   _abortConnection() {
     if (this._network) {
-      this._network.close();
+      this._network.disconnect();
       this._network = null;
     }
     this._stopQRScanner();
-    this._hostWaitingForAnswer = false;
     this._submitSDPCallback = null;
-    this._onAnswerReceived = null;
   }
 }
 
