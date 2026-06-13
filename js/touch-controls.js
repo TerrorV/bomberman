@@ -1,21 +1,19 @@
 // touch-controls.js — Virtual D-pad + bomb button overlay for mobile
 
 class TouchControls {
-  // Map each directional key to alternatives so both P1 (WASD) and P2 (Arrow) bindings work
-  static KEY_ALIASES = {
-    ArrowUp: ['ArrowUp', 'KeyW'],
-    ArrowDown: ['ArrowDown', 'KeyS'],
-    ArrowLeft: ['ArrowLeft', 'KeyA'],
-    ArrowRight: ['ArrowRight', 'KeyD'],
-    Space: ['Space', 'Enter'],
-  };
+  // Player-specific key bindings: index 0 = WASD+Space, index 1 = Arrows+Enter
+  static PLAYER_BINDINGS = [
+    { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', bomb: 'Space' },
+    { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', bomb: 'Enter' },
+  ];
 
-  constructor(game, canvas) {
+  constructor(game, canvas, playerIndex) {
     this.game = game;
     this.canvas = canvas;
+    this.playerIndex = playerIndex !== undefined ? playerIndex : 0;
     this.els = null;
-    this.buttons = {};  // {up: el, down: el, left: el, right: el, bomb: el}
-    this.activeKeys = {};  // track which keys are currently pressed via touch
+    this.buttons = {};
+    this.activeKeys = {};
     this.raf = null;
     this._bound = this._onFrame.bind(this);
   }
@@ -23,27 +21,30 @@ class TouchControls {
   show() {
     if (this.els) return;
 
+    const bindings = TouchControls.PLAYER_BINDINGS[this.playerIndex] || TouchControls.PLAYER_BINDINGS[0];
+
     const overlay = document.createElement('div');
-    overlay.id = 'touch-overlay';
+    overlay.className = 'touch-overlay';
+    overlay.dataset.player = this.playerIndex;
     overlay.innerHTML = `
       <div class="touch-dpad">
-        <button class="dpad-btn up" data-key="ArrowUp">▲</button>
-        <button class="dpad-btn left" data-key="ArrowLeft">◄</button>
-        <button class="dpad-btn down" data-key="ArrowDown">▼</button>
-        <button class="dpad-btn right" data-key="ArrowRight">►</button>
+        <button class="dpad-btn up" data-key="${bindings.up}">▲</button>
+        <button class="dpad-btn left" data-key="${bindings.left}">◄</button>
+        <button class="dpad-btn down" data-key="${bindings.down}">▼</button>
+        <button class="dpad-btn right" data-key="${bindings.right}">►</button>
       </div>
       <div class="touch-bomb">
-        <button class="bomb-btn" data-key="Space">💣</button>
+        <button class="bomb-btn" data-key="${bindings.bomb}">💣</button>
       </div>
     `;
     document.body.appendChild(overlay);
     this.els = overlay;
 
-    // Helper to set a key and all its aliases on the input manager
-    const setKeyWithAliases = (key, value) => {
-      const aliases = TouchControls.KEY_ALIASES[key] || [key];
-      for (const alias of aliases) {
-        this.game.inputManager.setKey(alias, value);
+    // Helper to set a key on the specific player's input
+    const setPlayerKey = (key, value) => {
+      const playerInput = this.game.inputManager.playerInputs[this.playerIndex];
+      if (playerInput) {
+        playerInput.keys[key] = value;
       }
     };
 
@@ -53,40 +54,40 @@ class TouchControls {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = true;
-        setKeyWithAliases(key, true);
+        setPlayerKey(key, true);
       });
       btn.addEventListener('touchend', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        setKeyWithAliases(key, false);
+        setPlayerKey(key, false);
       });
       btn.addEventListener('touchcancel', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        setKeyWithAliases(key, false);
+        setPlayerKey(key, false);
       });
     });
 
-    // Also support mouse events for desktop testing
+    // Mouse events for desktop testing
     overlay.querySelectorAll('.dpad-btn, .bomb-btn').forEach(btn => {
       btn.addEventListener('mousedown', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = true;
-        setKeyWithAliases(key, true);
+        setPlayerKey(key, true);
       });
       btn.addEventListener('mouseup', e => {
         e.preventDefault();
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        setKeyWithAliases(key, false);
+        setPlayerKey(key, false);
       });
       btn.addEventListener('mouseleave', e => {
         const key = btn.dataset.key;
         this.activeKeys[key] = false;
-        setKeyWithAliases(key, false);
+        setPlayerKey(key, false);
       });
     });
   }

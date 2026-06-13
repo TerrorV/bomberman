@@ -36,10 +36,9 @@ html, body {
   image-rendering: crisp-edges;
 }
 
-/* Touch overlay — mobile controls */
-#touch-overlay {
+/* Touch overlay — mobile controls (class selector for multiple players) */
+.touch-overlay {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
   height: 150px;
@@ -51,8 +50,19 @@ html, body {
   z-index: 100;
 }
 
+/* Player 0 at bottom, Player 1 above */
+.touch-overlay[data-player="0"] {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+}
+
+.touch-overlay[data-player="1"] {
+  bottom: 150px;
+  background: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 100%);
+}
+
 /* Show touch controls on touch devices */
-.touch-device #touch-overlay {
+.touch-device .touch-overlay {
   display: flex;
 }
 
@@ -137,9 +147,12 @@ html, body {
     grid-template-rows: 50px 50px;
     gap: 3px;
   }
-  #touch-overlay {
+  .touch-overlay {
     height: 140px;
     padding: 8px 12px 20px;
+  }
+  .touch-overlay[data-player="1"] {
+    bottom: 140px;
   }
 }
 
@@ -160,17 +173,23 @@ html, body {
     grid-template-rows: 55px 55px;
     gap: 3px;
   }
-  #touch-overlay {
+  .touch-overlay {
     height: 160px;
     padding: 10px 16px 24px;
+  }
+  .touch-overlay[data-player="1"] {
+    bottom: 160px;
   }
 }
 
 /* Landscape phones — less vertical space */
 @media (max-height: 500px) and (orientation: landscape) {
-  #touch-overlay {
+  .touch-overlay {
     height: 100px;
     padding: 4px 12px 8px;
+  }
+  .touch-overlay[data-player="1"] {
+    bottom: 100px;
   }
   .dpad-btn {
     width: 36px;
