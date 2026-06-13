@@ -1,8 +1,5 @@
 // online-integration.js - Patches Game class for online multiplayer after game.js loads
 
-// --- Add network-related fields to Game prototype ---
-const originalGameConstructor = Game.prototype.constructor;
-
 class GameOnlinePatcher {
   static patch() {
     // Add properties to existing Game instances via getter on prototype
@@ -51,6 +48,8 @@ class GameOnlinePatcher {
       this.network.handleAnswer(answerStr).then(() => {
         CONFIG.MULTIPLAYER_MODE = true;
         this.isOnlineHost = true;
+        soundFX.isOnlineMode = true;
+        soundFX.localPlayerIndex = 0;
         this.start();
         this.network.startStateSync();
       });
@@ -69,6 +68,8 @@ class GameOnlinePatcher {
       this.network.handleOffer(offerStr).then(() => {
         CONFIG.MULTIPLAYER_MODE = true;
         this.isOnlineClient = true;
+        soundFX.isOnlineMode = true;
+        soundFX.localPlayerIndex = 1;
         this.start();
       });
     };
@@ -111,6 +112,7 @@ class GameOnlinePatcher {
         await this.network.leaveRoom();
         this.isOnlineHost = false;
         this.isOnlineClient = false;
+        soundFX.isOnlineMode = false;
         this.network = null;
       }
     };

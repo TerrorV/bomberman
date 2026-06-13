@@ -3,6 +3,8 @@ class SoundFX {
   constructor() {
     this.ctx = null;
     this.enabled = false;
+    // Online multiplayer: when true, only sounds for local player events play
+    this.isOnlineMode = false;
   }
 
   init() {
@@ -43,22 +45,42 @@ class SoundFX {
   }
 
   // Short, sharp beep — bomb ticking/placement
-  place() { this._play(600, 0.08, 'square', 0.12); }
+  place(ownerIndex = -1) {
+    if (this.isOnlineMode && ownerIndex !== this.localPlayerIndex) return;
+    this._play(600, 0.08, 'square', 0.12);
+  }
 
   // Explosion — low boom
-  explosion() { this._play(80, 0.3, 'saw', 0.2, 'saw'); }
+  explosion(ownerIndex = -1) {
+    if (this.isOnlineMode && ownerIndex !== this.localPlayerIndex) return;
+    this._play(80, 0.3, 'saw', 0.2, 'saw');
+  }
 
   // Power-up — cheerful ascending ding
-  powerUp() {
+  powerUp(ownerIndex = -1) {
+    if (this.isOnlineMode && ownerIndex !== this.localPlayerIndex) return;
     this._play(523, 0.1, 'sine', 0.12);  // C5
     setTimeout(() => this._play(659, 0.1, 'sine', 0.12), 80);  // E5
   }
 
   // Enemy death — quick pop
-  kill() { this._play(900, 0.1, 'sine', 0.15); }
+  kill(ownerIndex = -1) {
+    if (this.isOnlineMode && ownerIndex !== this.localPlayerIndex) return;
+    this._play(900, 0.1, 'sine', 0.15);
+  }
 
   // Player death — deep thud
-  death() { this._play(100, 0.4, 'saw', 0.2, 'saw'); }
+  death(ownerIndex = -1) {
+    if (this.isOnlineMode && ownerIndex !== this.localPlayerIndex) return;
+    this._play(100, 0.4, 'saw', 0.2, 'saw');
+  }
+
+  // Victory / level complete
+  win() {
+    this._play(523, 0.15, 'sine', 0.15);
+    setTimeout(() => this._play(659, 0.15, 'sine', 0.15), 100);
+    setTimeout(() => this._play(784, 0.2, 'sine', 0.15), 200);
+  }
 }
 
 const soundFX = new SoundFX();

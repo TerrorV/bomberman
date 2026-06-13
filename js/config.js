@@ -41,7 +41,8 @@ const CONFIG = {
   START_POS: { x: 0, y: 0 },
   // Multiplayer settings
   MAX_PLAYERS: 2,
-  MULTIPLAYER_MODE: false,
+  MULTIPLAYER_MODE: false,    // local 2-player (same device)
+  ONLINE_MODE: false,        // P2P WebRTC multiplayer
   PLAYER_COLORS: ['#2ecc71', '#3498db'],
   PLAYER_START_POSITIONS: [
     { x: 0, y: 0 },

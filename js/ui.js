@@ -154,6 +154,11 @@ class UI {
       ctx.fillStyle = '#bbb';
       ctx.fillText('WASD / Arrows — Move  |  Space — Bomb  |  R — Restart', canvas.width / 2, canvas.height / 2 + 80);
     }
+
+    // Online multiplayer button
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = 'bold 18px Segoe UI, Arial';
+    ctx.fillText('Press O — Online Multiplayer (Host/Join)', canvas.width / 2, canvas.height / 2 + 130);
   }
 
   // --- Game over / win text ---

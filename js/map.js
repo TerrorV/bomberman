@@ -100,6 +100,7 @@ class MapSystem {
     return grid;
   }
 
+  getTile(x, y)  { return this.grid[y]?.[x] ?? 0; }
   isEmpty(x, y) { return this.grid[y]?.[x] === this.config.TILE.EMPTY; }
   isWall(x, y)   { return this.grid[y]?.[x] === this.config.TILE.WALL; }
   isBlock(x, y)  { return this.grid[y]?.[x] === this.config.TILE.BLOCK; }
