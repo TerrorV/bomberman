@@ -155,10 +155,29 @@ class UI {
       ctx.fillText('WASD / Arrows — Move  |  Space — Bomb  |  R — Restart', canvas.width / 2, canvas.height / 2 + 80);
     }
 
-    // Online multiplayer button
+    // Online multiplayer button - visible touch zone at bottom
+    const btnY = canvas.height / 2 + 140;
+    const btnW = 280;
+    const btnH = 44;
+
+    // Button background
+    ctx.fillStyle = 'rgba(231, 76, 60, 0.2)';
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - btnW / 2, btnY - btnH / 2, btnW, btnH, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Button text
     ctx.fillStyle = '#e74c3c';
     ctx.font = 'bold 18px Segoe UI, Arial';
-    ctx.fillText('Press O / Tap Below — Online Multiplayer', canvas.width / 2, canvas.height / 2 + 130);
+    ctx.fillText('🌐  Online Multiplayer', canvas.width / 2, btnY);
+
+    // Keyboard hint
+    ctx.fillStyle = '#666';
+    ctx.font = '13px Segoe UI, Arial';
+    ctx.fillText('(Press O key)', canvas.width / 2, btnY + btnH / 2 + 10);
   }
 
   // --- Game over / win text ---

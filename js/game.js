@@ -249,8 +249,10 @@ class Game {
   _onCanvasTap(x, y) {
     if (this.gameState === 'start') {
       const canvasH = this.ctx.canvas.height;
-      // Bottom ~15% of screen: open online multiplayer menu
-      if (y > canvasH * 0.82) {
+      // Bottom area (below the online button ~72%): open online multiplayer menu
+      // Button center is at canvasH/2 + 140, button height 44, so bottom of button ~81%
+      // We use 0.72 to give a generous touch area
+      if (y > canvasH * 0.72) {
         if (this.connectionUI) {
           this.connectionUI.show();
         }
@@ -259,10 +261,9 @@ class Game {
       // Upper half of screen: toggle mode (1P / 2P)
       if (y < canvasH / 2) {
         CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
-      } else {
-        // Lower half: start game
-        this._touchTap = true;
       }
+      // Middle area (50%-72%): start game
+      this._touchTap = true;
       return;
     }
     if (this.gameState === 'gameover' || this.gameState === 'finalWin') {
