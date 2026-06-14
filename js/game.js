@@ -63,7 +63,7 @@ class Game {
     }
   }
 
-  start() { this.stateManager.start(); }
+  start(mapSeed) { this.stateManager.start(mapSeed); }
   gameOver() { this.stateManager.gameOver(); }
   win() { this.stateManager.win(); }
   restart() { this.stateManager.restart(); }
@@ -221,16 +221,25 @@ class Game {
       }
     }
     if (this.gameState === 'start') {
-      this.inputManager.updateAll();
+      // Check key presses BEFORE updateAll() so isPressed() edge detection works
       // Toggle multiplayer mode with Tab
       const anyTab = this.inputManager.playerInputs.some(inp => inp.isPressed('Tab'));
-      if (anyTab) {
-        CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
-      }
+      // Open online multiplayer menu with O
+      const anyO = this.inputManager.playerInputs.some(inp => inp.isPressed('KeyO'));
       // Start game if any player presses their bomb key or Enter
       const anyStart = this.inputManager.playerInputs.some(
         inp => inp.isPressed(inp.bindings.bomb) || inp.isPressed('Enter')
       );
+      this.inputManager.updateAll();
+      if (anyTab) {
+        CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
+      }
+      if (anyO) {
+        if (this.connectionUI) {
+          this.connectionUI.show();
+        }
+        return;
+      }
       if (anyStart || this._touchTap) { this.start(); this.gameState = 'playing'; this._touchTap = false; }
       return;
     }
@@ -239,8 +248,16 @@ class Game {
 
   _onCanvasTap(x, y) {
     if (this.gameState === 'start') {
+      const canvasH = this.ctx.canvas.height;
+      // Bottom ~15% of screen: open online multiplayer menu
+      if (y > canvasH * 0.82) {
+        if (this.connectionUI) {
+          this.connectionUI.show();
+        }
+        return;
+      }
       // Upper half of screen: toggle mode (1P / 2P)
-      if (y < this.ctx.canvas.height / 2) {
+      if (y < canvasH / 2) {
         CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
       } else {
         // Lower half: start game

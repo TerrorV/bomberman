@@ -5,11 +5,11 @@ class GameStateManager {
     this.game = game;
   }
 
-  start() {
+  start(mapSeed = null) {
     soundFX.init();
 
-    // Generate map
-    this.game.mapSystem = MapSystem.create(CONFIG);
+    // Generate map (use provided seed for online sync, or random)
+    this.game.mapSystem = MapSystem.create(CONFIG, this.game.level || 1, mapSeed);
 
     // Create players
     this.game.players = [];

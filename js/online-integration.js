@@ -132,6 +132,46 @@ class GameOnlinePatcher {
       if (game) {
         game.network = new NetworkManager(game);
         game.connectionUI = new ConnectionUI(game);
+
+        // Wire up the connection callback: when Host/Join flow succeeds, start online game
+        game.connectionUI.onConnected = (network, mapSeed) => {
+          // Determine if local player is host or client
+          const isHost = network.isHost;
+          CONFIG.MULTIPLAYER_MODE = true;
+          soundFX.isOnlineMode = true;
+
+          if (isHost) {
+            game.isOnlineHost = true;
+            soundFX.localPlayerIndex = 0;
+            game.localPlayerIndex = 0;
+            // Start game with seeded map
+            game.start(mapSeed);
+            // Begin sending state snapshots to client
+            network.sendState(game.serializeGameState());
+            network.onMessage = (data) => {
+              let msg;
+              try { msg = JSON.parse(data); } catch (e) { return; }
+              if (msg.type === 'input') {
+                game.network.applyRemoteInput(msg);
+              }
+            };
+          } else {
+            game.isOnlineClient = true;
+            soundFX.localPlayerIndex = 1;
+            game.localPlayerIndex = 1;
+            // Start game with seeded map (same seed as host)
+            game.start(mapSeed);
+            network.onMessage = (data) => {
+              let msg;
+              try { msg = JSON.parse(data); } catch (e) { return; }
+              if (msg.type === 'state') {
+                game.remoteState = JSON.parse(data);
+                game.lastStateReceive = Date.now();
+                game.network.applyState(game.remoteState);
+              }
+            };
+          }
+        };
       }
     };
 

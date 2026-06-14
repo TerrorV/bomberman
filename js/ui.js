@@ -158,7 +158,7 @@ class UI {
     // Online multiplayer button
     ctx.fillStyle = '#e74c3c';
     ctx.font = 'bold 18px Segoe UI, Arial';
-    ctx.fillText('Press O — Online Multiplayer (Host/Join)', canvas.width / 2, canvas.height / 2 + 130);
+    ctx.fillText('Press O / Tap Below — Online Multiplayer', canvas.width / 2, canvas.height / 2 + 130);
   }
 
   // --- Game over / win text ---
