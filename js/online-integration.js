@@ -131,7 +131,9 @@ class GameOnlinePatcher {
       // Attach network manager to the game instance
       if (game) {
         game.network = new NetworkManager(game);
-        game.connectionUI = new ConnectionUI(game);
+        // Create ConnectionUI WITHOUT arguments (constructor takes none) then init DOM refs
+        game.connectionUI = new ConnectionUI();
+        game.connectionUI.init();
 
         // Wire up the connection callback: when Host/Join flow succeeds, start online game
         game.connectionUI.onConnected = (network, mapSeed) => {
