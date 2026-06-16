@@ -247,6 +247,8 @@ class Game {
   }
 
   _onCanvasTap(x, y) {
+    // Ignore canvas taps when connection overlay is visible
+    if (this.connectionUI && this.connectionUI.isVisible) return;
     if (this.gameState === 'start') {
       const canvasH = this.ctx.canvas.height;
       // Bottom area (below the online button ~72%): open online multiplayer menu

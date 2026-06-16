@@ -277,9 +277,13 @@ class ConnectionUI {
       });
     }
 
-    // Hide overlay and call callback
+    // Hide overlay and call callback WITHOUT aborting the network connection
     setTimeout(() => {
-      this.hide();
+      // Hide the overlay directly without calling hide() which would abort the connection
+      if (this.overlay) {
+        this.overlay.style.display = 'none';
+        this.isVisible = false;
+      }
       if (this.onConnected) {
         this.onConnected(network, mapSeed);
       }
