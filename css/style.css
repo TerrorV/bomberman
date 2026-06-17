@@ -227,3 +227,15 @@ html, body {
     gap: 5px;
   }
 }
+
+/* Connection overlay — shift down to avoid browser address bar obscuring QR */
+#connection-overlay {
+  padding-top: 15vh !important;
+  align-items: flex-start !important;
+}
+
+#connection-panel {
+  margin-top: 10vh;
+  max-height: 70vh;
+  overflow-y: auto;
+}
