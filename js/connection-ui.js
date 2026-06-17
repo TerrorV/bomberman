@@ -122,19 +122,24 @@ class ConnectionUI {
 
   // ---- Host Flow ----
 
-  async _startHost() {
+   async _startHost() {
     console.log('[DEBUG] _startHost() called');
+    console.log('[DEBUG] NetworkManager class available:', typeof NetworkManager);
     this._hideButtons();
     this._setStatus('Creating WebRTC offer...');
 
     // Create NetworkManager — host will set isHost internally
     const network = new NetworkManager();
     this._network = network;
+    console.log('[DEBUG] NetworkManager instance created, methods:', {
+      initializeHost: typeof network.initializeHost,
+      startHosting: typeof network.startHosting,
+    });
 
     try {
-      // initializeHost() returns base64-encoded SDP offer
-      console.log('[DEBUG] Calling network.initializeHost()');
-      const offerBase64 = await network.initializeHost();
+      // Use startHosting directly (more reliable than alias)
+      console.log('[DEBUG] Calling network.startHosting()');
+      const offerBase64 = await network.startHosting();
       console.log('[DEBUG] Got offer, length:', offerBase64?.length);
 
       // Show as QR code
