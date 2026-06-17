@@ -60,19 +60,30 @@ class ConnectionUI {
     }
 
     this._hideButtons();
+    console.log('[DEBUG] ConnectionUI.init() completed. DOM refs:', {
+      overlay: !!this.overlay,
+      hostBtn: !!this.hostBtn,
+      joinBtn: !!this.joinBtn,
+      closeBtn: !!this.closeBtn,
+    });
   }
 
   // ---- Show / Hide ----
 
   show() {
+    console.log('[DEBUG] ConnectionUI.show() called');
     if (this.overlay) {
       this.overlay.style.display = 'flex';
       this.isVisible = true;
+      console.log('[DEBUG] ConnectionUI overlay set to display:flex, isVisible=true');
+    } else {
+      console.error('[DEBUG] ConnectionUI.show(): overlay is NULL!');
     }
     this._resetState();
   }
 
   hide() {
+    console.log('[DEBUG] ConnectionUI.hide() called');
     if (this.overlay) {
       this.overlay.style.display = 'none';
       this.isVisible = false;
@@ -112,6 +123,7 @@ class ConnectionUI {
   // ---- Host Flow ----
 
   async _startHost() {
+    console.log('[DEBUG] _startHost() called');
     this._hideButtons();
     this._setStatus('Creating WebRTC offer...');
 
@@ -121,7 +133,9 @@ class ConnectionUI {
 
     try {
       // initializeHost() returns base64-encoded SDP offer
+      console.log('[DEBUG] Calling network.initializeHost()');
       const offerBase64 = await network.initializeHost();
+      console.log('[DEBUG] Got offer, length:', offerBase64?.length);
 
       // Show as QR code
       const success = this._generateQR(offerBase64);
@@ -137,6 +151,7 @@ class ConnectionUI {
 
       // When answer arrives (via camera scan or paste), complete connection
       this._submitSDPCallback = async (answerBase64) => {
+        console.log('[DEBUG] _submitSDPCallback called with answer, length:', answerBase64?.length);
         this._setStatus('Answer received! Establishing connection...');
         try {
           await network.acceptAnswer(answerBase64);
@@ -149,12 +164,15 @@ class ConnectionUI {
               if (network.isConnected) {
                 clearTimeout(timeout);
                 clearInterval(checkConnected);
+                console.log('[DEBUG] network.isConnected is true');
                 resolve();
               }
             }, 100);
           });
+          console.log('[DEBUG] Connection established, calling _onNetworkReady');
           await this._onNetworkReady(network, true);
         } catch (e) {
+          console.error('[DEBUG] Host connection failed:', e);
           this._setStatus('Connection failed: ' + e.message);
           this._showButtons();
         }
@@ -166,6 +184,7 @@ class ConnectionUI {
       });
 
     } catch (err) {
+      console.error('[DEBUG] _startHost error:', err);
       this._setStatus('Failed to create offer: ' + err.message);
       this._showButtons();
     }
@@ -174,18 +193,21 @@ class ConnectionUI {
   // ---- Join Flow ----
 
   async _startJoin() {
+    console.log('[DEBUG] _startJoin() called');
     this._hideButtons();
     this._setStatus('Scanning for host QR code...');
 
     // Start camera scanner to read host's offer QR
     const scanStarted = await this._startQRScanner((scannedBase64) => {
       // Scanned the host's offer QR
+      console.log('[DEBUG] QR scanner callback, got offer length:', scannedBase64?.length);
       this._setStatus('Offer scanned! Creating answer...');
       this._processScannedOffer(scannedBase64);
     });
 
     if (!scanStarted) {
       // Camera unavailable, show paste fallback
+      console.log('[DEBUG] QR scanner did not start, showing paste fallback');
       this._setStatus('Camera unavailable. Paste the host\'s SDP string below.');
       this._showPasteFallback('Join: Paste the host\'s base64 offer SDP below.');
       this._submitSDPCallback = async (offerBase64) => {
@@ -196,6 +218,7 @@ class ConnectionUI {
 
   async _processScannedOffer(offerBase64) {
     try {
+      console.log('[DEBUG] _processScannedOffer called');
       // Stop scanner since we got the offer
       this._stopQRScanner();
 
@@ -204,7 +227,9 @@ class ConnectionUI {
       this._network = network;
 
       // initializeClient() returns base64-encoded SDP answer
+      console.log('[DEBUG] Calling network.initializeClient()');
       const answerBase64 = await network.initializeClient(offerBase64);
+      console.log('[DEBUG] Got answer, length:', answerBase64?.length);
 
       // Show answer as QR for host to scan
       this._setStatus('Show this QR to the host...');
@@ -227,14 +252,17 @@ class ConnectionUI {
           if (network.isConnected) {
             clearTimeout(timeout);
             clearInterval(checkConnected);
+            console.log('[DEBUG] Client network.isConnected is true');
             resolve();
           }
         }, 100);
       });
 
+      console.log('[DEBUG] Client connection established, calling _onNetworkReady');
       await this._onNetworkReady(network, false);
 
     } catch (err) {
+      console.error('[DEBUG] _processScannedOffer error:', err);
       this._setStatus('Connection failed: ' + err.message);
       this._showButtons();
     }
@@ -243,6 +271,7 @@ class ConnectionUI {
   // ---- After Network Ready ----
 
   async _onNetworkReady(network, isHost) {
+    console.log('[DEBUG] _onNetworkReady() called, isHost:', isHost, 'network.isConnected:', network.isConnected);
     // Stop any ongoing scanning
     this._stopQRScanner();
     if (this.qrDisplayArea) this.qrDisplayArea.innerHTML = '';
@@ -255,11 +284,16 @@ class ConnectionUI {
     let mapSeed = null;
     if (isHost) {
       mapSeed = Math.floor(Math.random() * 2147483647);
+      console.log('[DEBUG] Host generating mapSeed:', mapSeed);
       // Send seed to client via data channel
       try {
         network.send(JSON.stringify({ type: 'seed', value: mapSeed }));
-      } catch(e) { /* ignore send errors */ }
+        console.log('[DEBUG] Host sent seed');
+      } catch(e) {
+        console.error('[DEBUG] Host failed to send seed:', e);
+      }
     } else {
+      console.log('[DEBUG] Client waiting for seed from host');
       // Client: wait for seed from host
       mapSeed = await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Seed timeout')), 10000);
@@ -271,21 +305,27 @@ class ConnectionUI {
           if (msg.type === 'seed') {
             clearTimeout(timeout);
             network.onMessage = origOnMessage; // restore
+            console.log('[DEBUG] Client received seed:', msg.value);
             resolve(msg.value);
           }
         };
       });
     }
+    console.log('[DEBUG] mapSeed resolved:', mapSeed);
 
     // Hide overlay and call callback WITHOUT aborting the network connection
     setTimeout(() => {
+      console.log('[DEBUG] Hiding overlay and calling onConnected callback');
       // Hide the overlay directly without calling hide() which would abort the connection
       if (this.overlay) {
         this.overlay.style.display = 'none';
         this.isVisible = false;
       }
       if (this.onConnected) {
+        console.log('[DEBUG] Calling onConnected(network, mapSeed)');
         this.onConnected(network, mapSeed);
+      } else {
+        console.error('[DEBUG] onConnected is NULL! Game callback not set.');
       }
     }, 500);
   }

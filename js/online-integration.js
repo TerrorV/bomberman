@@ -2,6 +2,7 @@
 
 class GameOnlinePatcher {
   static patch() {
+    console.log('[DEBUG] GameOnlinePatcher.patch() called');
     // Add properties to existing Game instances via getter on prototype
     Object.defineProperty(Game.prototype, 'network', {
       get() { return this._network; },
@@ -124,62 +125,66 @@ class GameOnlinePatcher {
       this.onlineUpdate(dt);
     };
 
-    // --- Hook init to create network manager ---
-    const origInit = window.init;
-    window.init = function () {
-      origInit();
-      // Attach network manager to the game instance
-      if (game) {
-        game.network = new NetworkManager(game);
-        // Create ConnectionUI WITHOUT arguments (constructor takes none) then init DOM refs
-        game.connectionUI = new ConnectionUI();
-        game.connectionUI.init();
-
-        // Wire up the connection callback: when Host/Join flow succeeds, start online game
-        game.connectionUI.onConnected = (network, mapSeed) => {
-          // Determine if local player is host or client
-          const isHost = network.isHost;
-          CONFIG.MULTIPLAYER_MODE = true;
-          soundFX.isOnlineMode = true;
-
-          if (isHost) {
-            game.isOnlineHost = true;
-            soundFX.localPlayerIndex = 0;
-            game.localPlayerIndex = 0;
-            // Start game with seeded map
-            game.start(mapSeed);
-            // Begin sending state snapshots to client
-            network.sendState(game.serializeGameState());
-            network.onMessage = (data) => {
-              let msg;
-              try { msg = JSON.parse(data); } catch (e) { return; }
-              if (msg.type === 'input') {
-                game.network.applyRemoteInput(msg);
-              }
-            };
-          } else {
-            game.isOnlineClient = true;
-            soundFX.localPlayerIndex = 1;
-            game.localPlayerIndex = 1;
-            // Start game with seeded map (same seed as host)
-            game.start(mapSeed);
-            network.onMessage = (data) => {
-              let msg;
-              try { msg = JSON.parse(data); } catch (e) { return; }
-              if (msg.type === 'state') {
-                game.remoteState = JSON.parse(data);
-                game.lastStateReceive = Date.now();
-                game.network.applyState(game.remoteState);
-              }
-            };
-          }
-        };
+    // --- Setup network + connectionUI after game.js init runs ---
+    // game.js uses window.addEventListener('DOMContentLoaded', init), NOT window.init
+    // So we register our own DOMContentLoaded handler that runs AFTER game init
+    const setupOnline = () => {
+      if (!game) {
+        console.log('[DEBUG] setupOnline: game instance not ready yet');
+        return;
       }
+      if (game.network) {
+        console.log('[DEBUG] setupOnline: already set up, skipping');
+        return;
+      }
+      console.log('[DEBUG] setupOnline: setting up network + connectionUI');
+      game.network = new NetworkManager(game);
+      game.connectionUI = new ConnectionUI();
+      game.connectionUI.init();
+
+      console.log('[DEBUG] Wiring up game.connectionUI.onConnected callback');
+      game.connectionUI.onConnected = (network, mapSeed) => {
+        console.log('[DEBUG] onConnected callback fired! isHost:', network?.isHost, 'mapSeed:', mapSeed);
+        // Link network to game instance (created in connection-ui without game ref)
+        network.game = game;
+        game.network = network;
+        const isHost = network.isHost;
+        CONFIG.MULTIPLAYER_MODE = true;
+        soundFX.isOnlineMode = true;
+
+        if (isHost) {
+          console.log('[DEBUG] Host path - starting game with seed:', mapSeed);
+          game.isOnlineHost = true;
+          soundFX.localPlayerIndex = 0;
+          game.localPlayerIndex = 0;
+          game.start(mapSeed);
+          network.sendState(game.serializeGameState());
+          network.startStateSync();
+        } else {
+          console.log('[DEBUG] Client path - starting game with seed:', mapSeed);
+          game.isOnlineClient = true;
+          soundFX.localPlayerIndex = 1;
+          game.localPlayerIndex = 1;
+          game.start(mapSeed);
+        }
+      };
     };
 
-    console.log('[online-integration] Game class patched for multiplayer.');
+    // Use the hook exposed by game.js to run after game instance is created
+    if (window.__onlineSetup) {
+      window.__onlineSetup(setupOnline);
+    } else {
+      // Fallback: game.js may not have exposed the hook yet
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(setupOnline, 20);
+      });
+    }
+
+    console.log('[DEBUG] [online-integration] Game class patched for multiplayer.');
   }
 }
 
 // Auto-patch when script loads
+console.log('[DEBUG] About to call GameOnlinePatcher.patch()');
 GameOnlinePatcher.patch();
+console.log('[DEBUG] GameOnlinePatcher.patch() completed');

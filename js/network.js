@@ -28,7 +28,8 @@ class InputBuffer {
 
 class NetworkManager {
   constructor(game) {
-    this.game = game;
+    this.game = game || null;
+    // Allow setting game later: network.game = game;
     this.isHost = false;
     this.isConnected = false;
     this.isReady = false;
@@ -99,6 +100,15 @@ class NetworkManager {
     }
   }
 
+  // Alias for connection-ui.js compatibility
+  async initializeHost() {
+    return this.startHosting();
+  }
+
+  async acceptAnswer(answerBase64) {
+    return this.handleAnswer(answerBase64);
+  }
+
   // ========== Client Side ==========
 
   async startJoining() {
@@ -137,6 +147,33 @@ class NetworkManager {
       console.error('[Network] Failed to handle offer:', err);
       if (this.onError) this.onError('Failed to handle offer: ' + err.message);
     }
+  }
+
+  // Alias for connection-ui.js: single call that handles offer -> returns answer
+  async initializeClient(offerBase64) {
+    // Set up the peer connection first
+    this.isHost = false;
+    this.localPlayerIndex = 1;
+
+    this.peerConnection = new RTCPeerConnection({
+      iceServers: this._stunServers
+    });
+
+    this.peerConnection.ondatachannel = (event) => {
+      this.dataChannel = event.channel;
+      this._setupDataChannel();
+    };
+
+    this._setupConnectionEvents();
+
+    const offer = JSON.parse(atob(offerBase64));
+    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+    const answer = await this.peerConnection.createAnswer();
+    await this.peerConnection.setLocalDescription(answer);
+
+    this._waitForICEGathering();
+    return btoa(JSON.stringify(this.peerConnection.localDescription));
   }
 
   // ========== Sending ==========
@@ -282,6 +319,13 @@ class NetworkManager {
     }
     if (bombDown) {
       remotePlayer.input._remoteBombDown = true;
+    }
+  }
+
+  // Public alias (used by online-integration callback)
+  applyRemoteInput(msg) {
+    if (msg.moveDir || msg.bombDown) {
+      this._applyRemoteInput(msg.moveDir, msg.bombDown);
     }
   }
 

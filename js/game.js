@@ -235,8 +235,12 @@ class Game {
         CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
       }
       if (anyO) {
+        console.log('[DEBUG] KeyO pressed. connectionUI exists:', !!this.connectionUI);
         if (this.connectionUI) {
+          console.log('[DEBUG] Calling connectionUI.show()');
           this.connectionUI.show();
+        } else {
+          console.error('[DEBUG] connectionUI is NULL - online-integration may not have loaded!');
         }
         return;
       }
@@ -246,28 +250,46 @@ class Game {
     this.inputManager.updateAll();
   }
 
-  _onCanvasTap(x, y) {
-    // Ignore canvas taps when connection overlay is visible
-    if (this.connectionUI && this.connectionUI.isVisible) return;
-    if (this.gameState === 'start') {
-      const canvasH = this.ctx.canvas.height;
-      // Bottom area (below the online button ~72%): open online multiplayer menu
-      // Button center is at canvasH/2 + 140, button height 44, so bottom of button ~81%
-      // We use 0.72 to give a generous touch area
-      if (y > canvasH * 0.72) {
-        if (this.connectionUI) {
-          this.connectionUI.show();
-        }
-        return;
-      }
-      // Upper half of screen: toggle mode (1P / 2P)
-      if (y < canvasH / 2) {
-        CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
-      }
-      // Middle area (50%-72%): start game
-      this._touchTap = true;
-      return;
-    }
+   _onCanvasTap(x, y) {
+     console.log('[DEBUG] _onCanvasTap called at', x, y, 'gameState:', this.gameState);
+     // Ignore canvas taps when connection overlay is visible
+     if (this.connectionUI && this.connectionUI.isVisible) {
+       console.log('[DEBUG] _onCanvasTap blocked: connection overlay is visible');
+       return;
+     }
+     if (this.gameState === 'start') {
+       const canvasW = this.ctx.canvas.width;
+       const canvasH = this.ctx.canvas.height;
+       // Detect tap on the "Online Multiplayer" button using actual button boundaries
+       // Button is rendered in UI.renderStartScreen() at:
+       //   btnY = canvasH/2 + 140, btnW = 280, btnH = 44
+       const btnY = canvasH / 2 + 140;
+       const btnW = 280;
+       const btnH = 44;
+       const btnLeft = canvasW / 2 - btnW / 2;
+       const btnRight = canvasW / 2 + btnW / 2;
+       const btnTop = btnY - btnH / 2;
+       const btnBottom = btnY + btnH / 2;
+       // Add 10px padding around the button for a more generous touch target
+       const pad = 10;
+       if (x >= btnLeft - pad && x <= btnRight + pad && y >= btnTop - pad && y <= btnBottom + pad) {
+         console.log('[DEBUG] _onCanvasTap: online button tapped -> show connection UI');
+         if (this.connectionUI) {
+           this.connectionUI.show();
+         }
+         return;
+       }
+       // Upper half of screen (above the title): toggle mode (1P / 2P)
+       if (y < canvasH / 2 - 50) {
+         console.log('[DEBUG] _onCanvasTap: upper area tap -> toggle multiplayer mode');
+         CONFIG.MULTIPLAYER_MODE = !CONFIG.MULTIPLAYER_MODE;
+         return;
+       }
+       // Middle area: start game
+       console.log('[DEBUG] _onCanvasTap: middle area tap -> start game');
+       this._touchTap = true;
+       return;
+     }
     if (this.gameState === 'gameover' || this.gameState === 'finalWin') {
       this._touchTap = true;
     }
@@ -523,4 +545,16 @@ function init() {
   });
 }
 
-window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('DOMContentLoaded', init);
+
+  // Hook for online-integration.js to call after game is initialized
+  window.__onlineSetup = function (setupFn) {
+    if (game) {
+      setupFn();
+    } else {
+      // Game not ready yet, wait for init to run
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(setupFn, 10);
+      });
+    }
+  };
