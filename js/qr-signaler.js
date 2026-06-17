@@ -73,12 +73,16 @@ class QRSignaler {
    * @returns {Promise<boolean>} Whether scanning was started successfully.
    */
   async startScanning(resultCallback) {
+    console.log('[QRSignaler] startScanning() called, Html5Qrcode available:', typeof Html5Qrcode !== 'undefined');
     this.onQRScanned = resultCallback;
 
     // Try using Html5Qrcode library
     if (typeof Html5Qrcode !== 'undefined') {
       try {
-        this.qrScanner = new Html5Qrcode('qr-scanner-region');
+        const containerId = 'qr-scanner-region';
+        console.log('[QRSignaler] Creating Html5Qrcode for container:', containerId);
+        this.qrScanner = new Html5Qrcode(containerId);
+        console.log('[QRSignaler] Starting camera...');
         await this.qrScanner.start(
           { facingMode: 'environment' }, // prefer back camera
           {
@@ -87,6 +91,7 @@ class QRSignaler {
           },
           (decodedText) => {
             // QR code scanned successfully
+            console.log('[QRSignaler] QR scanned! decodedText length:', decodedText.length, 'first80:', decodedText.substring(0, 80));
             this._onQRScanned(decodedText);
           },
           (errorMessage) => {
@@ -95,11 +100,14 @@ class QRSignaler {
         );
         this.isScanning = true;
         this.scanerReady = true;
+        console.log('[QRSignaler] Camera started successfully');
         return true;
       } catch (err) {
         console.error('[QRSignaler] Camera scanning failed:', err);
         // Fall through to text input fallback
       }
+    } else {
+      console.warn('[QRSignaler] Html5Qrcode not available');
     }
 
     // Fallback: show text input for manual paste
