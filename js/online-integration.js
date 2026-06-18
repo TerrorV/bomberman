@@ -40,69 +40,32 @@ class GameOnlinePatcher {
       configurable: true
     });
 
-    // --- Host flow ---
-    Game.prototype.prepareForHosting = function () {
-      return this.network.startHosting();
-    };
-
-    Game.prototype.handleOnlineAnswer = function (answerStr) {
-      this.network.handleAnswer(answerStr).then(() => {
-        CONFIG.MULTIPLAYER_MODE = true;
-        this.isOnlineHost = true;
-        soundFX.isOnlineMode = true;
-        soundFX.localPlayerIndex = 0;
-        this.start();
-        this.network.startStateSync();
-      });
-    };
-
     Game.prototype.serializeGameState = function () {
-      return this.network.serializeState();
+      return this.network ? this.network.serializeState() : null;
     };
 
-    // --- Client flow ---
-    Game.prototype.prepareForJoining = function () {
-      return this.network.startJoining();
-    };
-
-    Game.prototype.handleOnlineOffer = function (offerStr) {
-      this.network.handleOffer(offerStr).then(() => {
-        CONFIG.MULTIPLAYER_MODE = true;
-        this.isOnlineClient = true;
-        soundFX.isOnlineMode = true;
-        soundFX.localPlayerIndex = 1;
-        this.start();
-      });
-    };
-
+    // Client: send local input to host
     Game.prototype.sendInput = function () {
-      if (this.isOnlineClient) {
+      if (this.isOnlineClient && this.network) {
         const moveDir = this.players[1]?.input.moveDir || { dx: 0, dy: 0 };
         const bombDown = this.players[1]?.input.bombDown || false;
         this.network.sendInput(moveDir, bombDown);
       }
     };
 
-    Game.prototype.applyRemoteState = function () {
-      if (this.isOnlineClient && this.remoteState) {
-        this.network.applyState(this.remoteState);
-      }
-    };
-
     // --- Online update hook (called in _updatePlaying) ---
     Game.prototype.onlineUpdate = function (dt) {
-      if (this.isOnlineHost) {
-        // Host sends state snapshots at 10 Hz
-        if (!this._stateSendTimer) this._stateSendTimer = 0;
-        this._stateSendTimer -= dt;
-        if (this._stateSendTimer <= 0) {
-          this._stateSendTimer = 0.1;
-          this.network.sendState(this.serializeGameState());
-        }
-      }
+      if (!this.network) return;
+
+      // Network tick handles host state sync + pings + interpolation
+      this.network.tick(dt);
+
+      // Client: send input & apply remote state
       if (this.isOnlineClient) {
         this.sendInput();
-        this.applyRemoteState();
+        if (this.remoteState) {
+          this.network.applyState(this.remoteState);
+        }
       }
     };
 

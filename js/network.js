@@ -1,229 +1,239 @@
-// network.js — WebRTC P2P network abstraction layer
-// Host-authoritative model: host runs authoritative game simulation,
-// client sends input to host and receives game state snapshots.
-
-// ========== Input Buffer (Lag Compensation) ==========
-class InputBuffer {
-  constructor() {
-    this.inputs = [];       // { timestamp, moveDir, bombDown }
-    this.bufferWindow = 200; // ms — how far back we keep inputs
-  }
-
-  push(input, timestamp) {
-    this.inputs.push({ timestamp, ...input });
-    // Prune old entries
-    while (this.inputs.length > 1 && this.inputs[0].timestamp < timestamp - this.bufferWindow) {
-      this.inputs.shift();
-    }
-  }
-
-  getInputsAfter(timestamp) {
-    return this.inputs.filter(i => i.timestamp > timestamp);
-  }
-
-  clear() {
-    this.inputs = [];
-  }
-}
+// network.js — PeerJS-based P2P network for Bomberman multiplayer
+// Uses PeerJS hosted signaling (no server needed) with simple room codes
+// Host-authoritative: host runs game simulation, client sends input
 
 class NetworkManager {
   constructor(game) {
     this.game = game || null;
-    // Allow setting game later: network.game = game;
     this.isHost = false;
     this.isConnected = false;
     this.isReady = false;
     this.localPlayerIndex = 0;
-    this.peerConnection = null;
-    this.dataChannel = null;
     this.ping = 0;
     this._pingTimer = 0;
-    this._pongTime = 0;
-    this._stunServers = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ];
+
+    // PeerJS
+    this.peer = null;
+    this.conn = null;
+
     // Callbacks
     this.onConnect = null;
     this.onDisconnect = null;
     this.onError = null;
     this.onClose = null;
     this.onMessage = null;
-    // Host state send timer (10 Hz)
+
+    // State sync (host sends at 10 Hz)
+    this._stateSyncActive = false;
     this._stateSendInterval = 100;
     this._stateSendTimer = 0;
-    this._stateSyncActive = false;
-    // Lag compensation
-    this.inputBuffer = new InputBuffer();
-    this.lastAppliedTimestamp = 0;
-    // Client-side interpolation
+
+    // Input buffer for lag compensation
+    this.inputBuffer = [];
+    this.bufferWindow = 200;
+
+    // Client interpolation
     this.previousState = null;
     this.currentState = null;
     this.interpolationFactor = 0;
     this._interpTimer = 0;
-    this._interpSpeed = 0.02; // per frame
+
+    // Room code (6-char alphanumeric for easy entry)
+    this.roomCode = '';
+
     // Reconnection
-    this._reconnectAttempts = 0;
-    this._maxReconnectAttempts = 5;
-    this._reconnectTimer = 0;
     this._reconnecting = false;
   }
 
-  // ========== Host Side ==========
+  // ========== Generate a readable room code ==========
+
+  static generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  // ========== Host: create room and wait for client ==========
 
   async startHosting() {
+    console.log('[Network] Starting as host');
     this.isHost = true;
     this.localPlayerIndex = 0;
 
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: this._stunServers
+    this.peer = new Peer('bm-' + NetworkManager.generateRoomCode(), {
+      debug: 1,
     });
 
-    this.dataChannel = this.peerConnection.createDataChannel('game', { ordered: false });
-    this._setupDataChannel();
-    this._setupConnectionEvents();
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Host init timeout')), 10000);
 
-    this._waitForICEGathering();
-    const offer = await this.peerConnection.createOffer();
-    await this.peerConnection.setLocalDescription(offer);
+      this.peer.on('open', (peerId) => {
+        clearTimeout(timeout);
+        this.roomCode = peerId.replace('bm-', '');
+        console.log('[Network] Host ready, room code:', this.roomCode);
+        resolve(this.roomCode);
+      });
 
-    return btoa(JSON.stringify(this.peerConnection.localDescription));
+      this.peer.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error('[Network] Host peer error:', err);
+        // Retry with different ID
+        if (err.type === 'unavailable-id') {
+          this.peer.destroy();
+          this.peer = null;
+          this.startHosting().then(resolve).catch(reject);
+        } else {
+          reject(err);
+        }
+      });
+
+      // Client connection incoming
+      this.peer.on('connection', (conn) => {
+        console.log('[Network] Client connected!');
+        this.conn = conn;
+        this._setupConnection();
+      });
+    });
   }
 
-  async handleAnswer(answerBase64) {
-    try {
-      const answer = JSON.parse(atob(answerBase64));
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-    } catch (err) {
-      console.error('[Network] Failed to accept answer:', err);
-      if (this.onError) this.onError('Failed to accept answer: ' + err.message);
-    }
-  }
-
-  // Alias for connection-ui.js compatibility
+  // Alias
   async initializeHost() {
     return this.startHosting();
   }
 
-  async acceptAnswer(answerBase64) {
-    return this.handleAnswer(answerBase64);
-  }
+  // ========== Client: join existing room ==========
 
-  // ========== Client Side ==========
-
-  async startJoining() {
+  async joinRoom(roomCode) {
+    console.log('[Network] Joining room:', roomCode);
     this.isHost = false;
     this.localPlayerIndex = 1;
 
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: this._stunServers
+    this.peer = new Peer(undefined, {
+      debug: 1,
     });
 
-    this.peerConnection.ondatachannel = (event) => {
-      this.dataChannel = event.channel;
-      this._setupDataChannel();
-    };
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (!this.isConnected) reject(new Error('Join timeout - check room code'));
+      }, 15000);
 
-    this._setupConnectionEvents();
+      this.peer.on('open', () => {
+        console.log('[Network] Client peer ready, connecting to host');
+        const conn = this.peer.connect('bm-' + roomCode, {
+          reliable: false,
+        });
 
-    this._waitForICEGathering();
-    const offer = await this.peerConnection.createOffer();
-    await this.peerConnection.setLocalDescription(offer);
+        this.conn = conn;
+        this._setupConnection();
 
-    return btoa(JSON.stringify(this.peerConnection.localDescription));
+        conn.on('open', () => {
+          clearTimeout(timeout);
+          console.log('[Network] Connection opened');
+          resolve();
+        });
+
+        conn.on('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+
+      this.peer.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error('[Network] Client peer error:', err);
+        if (err.type === 'peer-unavailable') {
+          reject(new Error('Room not found - check the code'));
+        } else {
+          reject(err);
+        }
+      });
+    });
   }
 
-  async handleOffer(offerBase64) {
-    try {
-      const offer = JSON.parse(atob(offerBase64));
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  // Alias
+  async initializeClient(roomCode) {
+    return this.joinRoom(roomCode);
+  }
 
-      const answer = await this.peerConnection.createAnswer();
-      await this.peerConnection.setLocalDescription(answer);
+  // Accept answer is a no-op with PeerJS (signaling is automatic)
+  async acceptAnswer() {
+    return Promise.resolve();
+  }
 
-      this._waitForICEGathering();
-      return btoa(JSON.stringify(this.peerConnection.localDescription));
-    } catch (err) {
-      console.error('[Network] Failed to handle offer:', err);
-      if (this.onError) this.onError('Failed to handle offer: ' + err.message);
+  // ========== Connection setup (both sides) ==========
+
+  _setupConnection() {
+    this.conn.on('data', (data) => {
+      this._handleRawData(data);
+    });
+
+    this.conn.on('connect', () => {
+      console.log('[Network] Data channel connected');
+      this.isConnected = true;
+      this.isReady = true;
+      if (this.onConnect) this.onConnect();
+    });
+
+    this.conn.on('close', () => {
+      console.log('[Network] Connection closed');
+      this.isConnected = false;
+      this.isReady = false;
+      if (this.onDisconnect) this.onDisconnect();
+    });
+
+    this.conn.on('error', (err) => {
+      console.error('[Network] Connection error:', err);
+      if (this.onError) this.onError(String(err));
+    });
+  }
+
+  // ========== Send / Receive ==========
+
+  send(data) {
+    if (!this.conn || !this.isConnected) {
+      console.warn('[Network] Cannot send, not connected');
+      return;
     }
+    this.conn.send(data);
   }
 
-  // Alias for connection-ui.js: single call that handles offer -> returns answer
-  async initializeClient(offerBase64) {
-    // Set up the peer connection first
-    this.isHost = false;
-    this.localPlayerIndex = 1;
-
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: this._stunServers
-    });
-
-    this.peerConnection.ondatachannel = (event) => {
-      this.dataChannel = event.channel;
-      this._setupDataChannel();
-    };
-
-    this._setupConnectionEvents();
-
-    const offer = JSON.parse(atob(offerBase64));
-    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-
-    const answer = await this.peerConnection.createAnswer();
-    await this.peerConnection.setLocalDescription(answer);
-
-    this._waitForICEGathering();
-    return btoa(JSON.stringify(this.peerConnection.localDescription));
-  }
-
-  // ========== Sending ==========
-
-  /**
-   * Send raw string over data channel.
-   */
-  send(raw) {
-    if (!this.dataChannel || !this.isConnected) return;
-    this.dataChannel.send(raw);
-  }
-
-  /**
-   * Host sends game state snapshot to client.
-   */
   sendState(state) {
     this.send(JSON.stringify({ type: 'state', data: state }));
   }
 
-  /**
-   * Client sends input to host.
-   */
   sendInput(moveDir, bombDown) {
-    if (!this.isHost) {
-      const now = performance.now();
-      this.send(JSON.stringify({
-        type: 'input',
-        moveDir,
-        bombDown,
-        timestamp: now
-      }));
-      this.inputBuffer.push({ moveDir, bombDown }, now);
+    if (this.isHost) return;
+    this.send(JSON.stringify({
+      type: 'input',
+      moveDir,
+      bombDown,
+      timestamp: performance.now(),
+    }));
+  }
+
+  _handleRawData(data) {
+    if (this.onMessage) this.onMessage(data);
+
+    let msg;
+    try {
+      msg = JSON.parse(typeof data === 'string' ? data : data);
+    } catch (e) {
+      return;
     }
-  }
 
-  /**
-   * Ping/pong for latency measurement.
-   */
-  _sendPing() {
-    const now = performance.now();
-    this._pongTime = now;
-    this.send(JSON.stringify({ type: 'ping', timestamp: now }));
-  }
-
-  _handlePing(timestamp) {
-    this.send(JSON.stringify({ type: 'pong', timestamp }));
-  }
-
-  _handlePong(timestamp) {
-    this.ping = Math.round(performance.now() - timestamp);
+    if (msg.type === 'state') {
+      this._receiveGameState(msg.data);
+    } else if (msg.type === 'input') {
+      this._applyRemoteInput(msg.moveDir, msg.bombDown);
+    } else if (msg.type === 'ping') {
+      this.send(JSON.stringify({ type: 'pong', timestamp: msg.timestamp }));
+    } else if (msg.type === 'pong') {
+      this.ping = Math.round(performance.now() - msg.timestamp);
+    } else if (msg.type === 'seed') {
+      // Forward seed to game
+      if (this.game) this.game.receivedSeed = msg.value;
+    }
   }
 
   // ========== State Sync ==========
@@ -238,91 +248,54 @@ class NetworkManager {
   }
 
   /**
-   * Host: called each frame to send state at 10Hz.
+   * Call each frame (dt in seconds).
+   * Host: sends state at 10Hz + pings.
+   * Client: pings + updates interpolation.
    */
-  hostTick(dt) {
-    if (!this._stateSyncActive) return;
-    this._stateSendTimer -= dt;
-    if (this._stateSendTimer <= 0) {
-      this._stateSendTimer = this._stateSendInterval / 1000;
-      const state = this.serializeState();
-      this.sendState(state);
-    }
+  tick(dt) {
     // Ping every 2 seconds
     this._pingTimer -= dt;
     if (this._pingTimer <= 0) {
       this._pingTimer = 2;
-      this._sendPing();
+      this.send(JSON.stringify({ type: 'ping', timestamp: performance.now() }));
     }
-  }
 
-  /**
-   * Client: process incoming messages.
-   */
-  clientTick(dt) {
-    // Ping every 2 seconds
-    this._pingTimer -= dt;
-    if (this._pingTimer <= 0) {
-      this._pingTimer = 2;
-      this._sendPing();
-    }
-    // Interpolation
-    if (this.currentState) {
-      this._interpTimer += dt;
-      this.interpolationFactor = Math.min(1, this._interpTimer * this._interpSpeed * 60);
-    }
-  }
-
-  /**
-   * Client: handle incoming state message.
-   */
-  receiveState(stateJson) {
-    let state;
-    try {
-      const msg = JSON.parse(stateJson);
-      if (msg.type === 'state') {
-        state = msg.data;
-      } else if (msg.type === 'ping') {
-        this._handlePong(msg.timestamp);
-        return;
-      } else if (msg.type === 'pong') {
-        this._handlePong(msg.timestamp);
-        return;
-      } else if (msg.type === 'input') {
-        // Host receives client input
-        this._applyRemoteInput(msg.moveDir, msg.bombDown);
-        return;
+    if (this.isHost && this._stateSyncActive) {
+      this._stateSendTimer -= dt * 1000;
+      if (this._stateSendTimer <= 0) {
+        this._stateSendTimer = this._stateSendInterval;
+        const state = this.serializeState();
+        this.sendState(state);
       }
-    } catch (e) {
-      // Try parsing as raw state (backward compat)
-      state = JSON.parse(stateJson);
     }
-    if (state) {
-      this.previousState = this.currentState;
-      this.currentState = state;
-      this._interpTimer = 0;
-      this.interpolationFactor = 0;
+
+    // Client interpolation
+    if (!this.isHost && this.currentState) {
+      this._interpTimer += dt;
+      this.interpolationFactor = Math.min(1, this._interpTimer * 0.02 * 60);
+    }
+  }
+
+  // ========== State receive ==========
+
+  _receiveGameState(state) {
+    this.previousState = this.currentState;
+    this.currentState = state;
+    this._interpTimer = 0;
+    this.interpolationFactor = 0;
+    if (this.game) {
       this.game.remoteState = state;
       this.game.lastStateReceive = performance.now();
     }
   }
 
-  /**
-   * Host: apply remote player input.
-   */
   _applyRemoteInput(moveDir, bombDown) {
     const remotePlayer = this.game?.players?.[1];
     if (!remotePlayer) return;
-    // Set input state on remote player's input object
-    if (moveDir) {
-      remotePlayer.input._remoteMoveDir = moveDir;
-    }
-    if (bombDown) {
-      remotePlayer.input._remoteBombDown = true;
-    }
+    if (moveDir) remotePlayer.input._remoteMoveDir = moveDir;
+    if (bombDown) remotePlayer.input._remoteBombDown = true;
   }
 
-  // Public alias (used by online-integration callback)
   applyRemoteInput(msg) {
     if (msg.moveDir || msg.bombDown) {
       this._applyRemoteInput(msg.moveDir, msg.bombDown);
@@ -380,21 +353,16 @@ class NetworkManager {
     };
   }
 
-  /**
-   * Client: apply received state to local game.
-   */
   applyState(state) {
     const g = this.game;
     if (!g || !state) return;
 
-    // Apply player positions
     if (state.players) {
       for (const sp of state.players) {
         const local = g.players[sp.playerIndex];
         if (!local) continue;
-        // Don't override local player input; interpolate position
+
         if (sp.playerIndex === this.localPlayerIndex) {
-          // Trust local input, only sync non-positional state
           local.lives = sp.lives;
           local.score = sp.score;
           local.alive = sp.alive;
@@ -405,7 +373,6 @@ class NetworkManager {
           local.bombDuration = sp.bombDuration;
           local.maxBombs = sp.maxBombs;
         } else {
-          // Remote player — fully sync
           local.x = sp.x;
           local.y = sp.y;
           local.gridX = sp.gridX;
@@ -425,7 +392,6 @@ class NetworkManager {
       }
     }
 
-    // Sync bombs (remove local bombs, add remote ones)
     if (state.bombs) {
       g.bombs = state.bombs.map(sb => {
         const bomb = new Bomb(sb.gridX, sb.gridY, CONFIG);
@@ -435,7 +401,6 @@ class NetworkManager {
       });
     }
 
-    // Sync enemies
     if (state.enemies && g.enemies) {
       for (let i = 0; i < Math.min(state.enemies.length, g.enemies.length); i++) {
         const se = state.enemies[i];
@@ -450,12 +415,9 @@ class NetworkManager {
       }
     }
 
-    // Sync powerups
     if (state.powerups && g.mapSystem) {
-      // Remove powerups not in remote state
       const remoteKeys = new Set(state.powerups.map(p => `${p.gridX},${p.gridY}`));
       g.powerups = g.powerups.filter(p => remoteKeys.has(`${p.gridX},${p.gridY}`));
-      // Add new powerups
       for (const sp of state.powerups) {
         if (!g.powerups.find(p => p.gridX === sp.gridX && p.gridY === sp.gridY && p.type === sp.type)) {
           const pu = new PowerUp(sp.gridX, sp.gridY, sp.type);
@@ -464,125 +426,14 @@ class NetworkManager {
       }
     }
 
-    // Sync global state
     g.timeLeft = state.timeLeft;
     if (state.gameState && state.gameState !== 'playing') {
       g.gameState = state.gameState;
     }
   }
 
-  // ========== Reconnection ==========
+  // ========== Cleanup ==========
 
-  async _attemptReconnect() {
-    if (this._reconnectAttempts >= this._maxReconnectAttempts) {
-      this._reconnecting = false;
-      if (this.onDisconnect) this.onDisconnect('max_reconnect');
-      return;
-    }
-
-    this._reconnectAttempts++;
-    const backoff = Math.min(1000 * Math.pow(2, this._reconnectAttempts - 1), 10000);
-
-    console.log(`[Network] Reconnect attempt ${this._reconnectAttempts}/${this._maxReconnectAttempts} in ${backoff}ms`);
-
-    await new Promise(r => setTimeout(r, backoff));
-
-    try {
-      if (this.isHost) {
-        // Host: recreate connection
-        this.disconnect();
-        await this.startHosting();
-        // Signal host UI to show new QR
-        if (this.game?.connectionUI) {
-          this.game.connectionUI.showHostQR();
-        }
-      } else {
-        // Client: try to rejoin
-        this.disconnect();
-        if (this.game?.connectionUI) {
-          this.game.connectionUI.showJoinScreen();
-        }
-      }
-      this._reconnectAttempts = 0;
-      this._reconnecting = false;
-    } catch (err) {
-      console.error('[Network] Reconnect failed:', err);
-      this._attemptReconnect(); // recursive retry
-    }
-  }
-
-  // ========== Internal ==========
-
-  _waitForICEGathering() {
-    return new Promise((resolve) => {
-      if (this.peerConnection.iceGatheringState === 'complete') { resolve(); return; }
-      this.peerConnection.addEventListener('icegatheringstatechange', () => {
-        if (this.peerConnection.iceGatheringState === 'complete') resolve();
-      });
-      setTimeout(resolve, 5000);
-    });
-  }
-
-  _setupDataChannel() {
-    this.dataChannel.onopen = () => {
-      console.log('[Network] Data channel opened');
-      this.isConnected = true;
-      this.isReady = true;
-      this._reconnectAttempts = 0;
-      if (this.onConnect) this.onConnect();
-    };
-    this.dataChannel.onclose = () => {
-      console.log('[Network] Data channel closed');
-      this.isConnected = false;
-      this.isReady = false;
-      if (!this._reconnecting) {
-        this._reconnecting = true;
-        this._attemptReconnect();
-      }
-      if (this.onDisconnect) this.onDisconnect();
-      if (this.onClose) this.onClose();
-    };
-    this.dataChannel.onerror = (err) => {
-      console.error('[Network] Data channel error:', err);
-      if (this.onError) this.onError(err.message || String(err));
-    };
-    this.dataChannel.onmessage = (event) => {
-      // Client receives state; Host receives input
-      if (this.isHost) {
-        this.receiveState(event.data);
-      } else {
-        this.receiveState(event.data);
-      }
-      if (this.onMessage) this.onMessage(event.data);
-    };
-  }
-
-  _setupConnectionEvents() {
-    this.peerConnection.onconnectionstatechange = () => {
-      const state = this.peerConnection.connectionState;
-      console.log('[Network] Connection state:', state);
-      if (state === 'connected') {
-        this.isConnected = true;
-        this._reconnectAttempts = 0;
-      } else if (state === 'disconnected' || state === 'failed') {
-        this.isConnected = false;
-        this.isReady = false;
-        if (!this._reconnecting) {
-          this._reconnecting = true;
-          this._attemptReconnect();
-        }
-        if (this.onDisconnect) this.onDisconnect();
-        if (this.onClose) this.onClose();
-      }
-    };
-    this.peerConnection.oniceconnectionstatechange = () => {
-      // Silent — ICE state changes are noisy
-    };
-  }
-
-  /**
-   * Leave room and clean up.
-   */
   async leaveRoom() {
     this.stopStateSync();
     this._reconnecting = false;
@@ -590,11 +441,11 @@ class NetworkManager {
   }
 
   disconnect() {
-    if (this.dataChannel) { this.dataChannel.close(); this.dataChannel = null; }
-    if (this.peerConnection) { this.peerConnection.close(); this.peerConnection = null; }
+    if (this.conn) { this.conn.close(); this.conn = null; }
+    if (this.peer) { this.peer.destroy(); this.peer = null; }
     this.isConnected = false;
     this.isReady = false;
-    this.inputBuffer.clear();
+    this.inputBuffer = [];
     this.previousState = null;
     this.currentState = null;
   }
