@@ -120,9 +120,7 @@ class NetworkManager {
 
       this.peer.on('open', () => {
         console.log('[Network] Client peer ready, connecting to host');
-        const conn = this.peer.connect('bm-' + roomCode, {
-          reliable: false,
-        });
+        const conn = this.peer.connect('bm-' + roomCode);
 
         this.conn = conn;
         this._setupConnection();
