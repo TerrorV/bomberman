@@ -89,13 +89,15 @@ class MapSystem {
 
     for (const corner of corners) {
       // Clear a 3x3 area around each corner (clamped to map bounds)
+      // Only clear destructible blocks, preserve indestructible walls
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const nx = corner.x + dx;
           const ny = corner.y + dy;
-          // Ensure within bounds and not an indestructible wall position
           if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
-            grid[ny][nx] = TILE.EMPTY;
+            if (grid[ny][nx] === TILE.BLOCK) {
+              grid[ny][nx] = TILE.EMPTY;
+            }
           }
         }
       }
