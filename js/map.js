@@ -79,13 +79,27 @@ class MapSystem {
       }
     }
 
-    // 4) Clear player start position
-    grid[START_POS.y][START_POS.x] = TILE.EMPTY;
-    // Clear 1 cell around start
-    if (START_POS.x + 1 < COLS - 1) grid[START_POS.y][START_POS.x + 1] = TILE.EMPTY;
-    if (START_POS.x - 1 >= 1) grid[START_POS.y][START_POS.x - 1] = TILE.EMPTY;
-    if (START_POS.y + 1 < ROWS - 1) grid[START_POS.y + 1][START_POS.x] = TILE.EMPTY;
-    if (START_POS.y - 1 >= 1) grid[START_POS.y - 1][START_POS.x] = TILE.EMPTY;
+    // 4) Clear all four corners and their surrounding cells (player spawning locations)
+    const corners = [
+      { x: 0, y: 0 },                          // top-left
+      { x: COLS - 1, y: 0 },                  // top-right
+      { x: 0, y: ROWS - 1 },                  // bottom-left
+      { x: COLS - 1, y: ROWS - 1 },           // bottom-right
+    ];
+
+    for (const corner of corners) {
+      // Clear a 3x3 area around each corner (clamped to map bounds)
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = corner.x + dx;
+          const ny = corner.y + dy;
+          // Ensure within bounds and not an indestructible wall position
+          if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+            grid[ny][nx] = TILE.EMPTY;
+          }
+        }
+      }
+    }
 
     // 5) Clear all enemy spawn positions
     for (const spawn of ENEMY_SPAWNS) {
