@@ -166,8 +166,9 @@ class NetworkManager {
       this._handleRawData(data);
     });
 
-    this.conn.on('connect', () => {
-      console.log('[Network] Data channel connected');
+    // PeerJS data connections fire 'open' (not 'connect')
+    this.conn.on('open', () => {
+      console.log('[Network] Data channel open');
       this.isConnected = true;
       this.isReady = true;
       if (this.onConnect) this.onConnect();
