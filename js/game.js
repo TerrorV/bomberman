@@ -302,9 +302,19 @@ class Game {
     // 1. Each player moves independently
     for (const player of this.players) {
       if (!player.alive) continue;
-      const dir = player.input.moveDir;
+      // In host mode, use remote input for remote player if available
+      let dir;
+      if (this.isOnlineHost && player.playerIndex !== this.localPlayerIndex && player._remoteMoveDir) {
+        dir = player._remoteMoveDir;
+      } else {
+        dir = player.input.moveDir;
+      }
       if (dir.dx !== 0 || dir.dy !== 0) {
         player.move(dir.dx, dir.dy, this.mapSystem, (gx, gy) => this._isBlocked(gx, gy));
+      }
+      // Clear remote move dir after consuming it (remote player stops unless new input arrives)
+      if (this.isOnlineHost && player.playerIndex !== this.localPlayerIndex) {
+        player._remoteMoveDir = null;
       }
     }
 
@@ -314,7 +324,15 @@ class Game {
       if (!player._bombCooldown) player._bombCooldown = 0;
       player._bombCooldown -= dt;
 
-      if (player._bombCooldown <= 0 && player.input.bombDown) {
+      let bombTrigger;
+      if (this.isOnlineHost && player.playerIndex !== this.localPlayerIndex) {
+        bombTrigger = player._remoteBombDown || false;
+        // Clear after consuming (edge-trigger)
+        player._remoteBombDown = false;
+      } else {
+        bombTrigger = player.input.bombDown;
+      }
+      if (player._bombCooldown <= 0 && bombTrigger) {
         const alreadyHasBomb = this.bombs.some(b => b.gridX === player.gridX && b.gridY === player.gridY);
         if (!alreadyHasBomb) {
           const bombData = player.placeBomb();

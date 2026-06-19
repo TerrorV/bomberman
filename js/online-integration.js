@@ -47,8 +47,9 @@ class GameOnlinePatcher {
     // Client: send local input to host
     Game.prototype.sendInput = function () {
       if (this.isOnlineClient && this.network) {
-        const moveDir = this.players[1]?.input.moveDir || { dx: 0, dy: 0 };
-        const bombDown = this.players[1]?.input.bombDown || false;
+        const localIdx = this.localPlayerIndex || 0;
+        const moveDir = this.players[localIdx]?.input.moveDir || { dx: 0, dy: 0 };
+        const bombDown = this.players[localIdx]?.input.bombDown || false;
         this.network.sendInput(moveDir, bombDown);
       }
     };
@@ -84,8 +85,18 @@ class GameOnlinePatcher {
     // --- Hook _updatePlaying to call onlineUpdate ---
     const origUpdatePlaying = Game.prototype._updatePlaying;
     Game.prototype._updatePlaying = function (dt) {
-      origUpdatePlaying.call(this, dt);
-      this.onlineUpdate(dt);
+      if (this.isOnlineClient) {
+        // Client: do NOT run local game simulation.
+        // Only send input, receive state, and render.
+        this.onlineUpdate(dt);
+      } else if (this.isOnlineHost) {
+        // Host: run local game simulation, but apply remote input first
+        this.onlineUpdate(dt);
+        origUpdatePlaying.call(this, dt);
+      } else {
+        // Local/offline game: run normally
+        origUpdatePlaying.call(this, dt);
+      }
     };
 
     // --- Setup network + connectionUI after game.js init runs ---

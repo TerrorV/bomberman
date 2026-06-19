@@ -289,10 +289,14 @@ class NetworkManager {
   }
 
   _applyRemoteInput(moveDir, bombDown) {
-    const remotePlayer = this.game?.players?.[1];
+    // Find the remote player (the one that is NOT the local player)
+    const localIdx = this.game?.localPlayerIndex ?? 0;
+    const remoteIdx = localIdx === 0 ? 1 : 0;
+    const remotePlayer = this.game?.players?.[remoteIdx];
     if (!remotePlayer) return;
-    if (moveDir) remotePlayer.input._remoteMoveDir = moveDir;
-    if (bombDown) remotePlayer.input._remoteBombDown = true;
+    // Store remote input directly on player object (game.js reads player._remoteMoveDir)
+    if (moveDir) remotePlayer._remoteMoveDir = moveDir;
+    if (bombDown !== undefined) remotePlayer._remoteBombDown = bombDown;
   }
 
   applyRemoteInput(msg) {
