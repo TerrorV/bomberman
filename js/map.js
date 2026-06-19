@@ -130,9 +130,33 @@ class MapSystem {
     return false;
   }
 
-  hasBlock(x, y) { return this.isBlock(x, y); }
+   hasBlock(x, y) { return this.isBlock(x, y); }
 
-  render(ctx, offsetX, offsetY) {
+   serialize() {
+     // Deep clone the grid for network transmission
+     const { ROWS, COLS } = this.config;
+     const serialized = [];
+     for (let y = 0; y < ROWS; y++) {
+       serialized[y] = [];
+       for (let x = 0; x < COLS; x++) {
+         serialized[y][x] = this.grid[y][x];
+       }
+     }
+     return serialized;
+   }
+
+   deserialize(data) {
+     if (!data) return;
+     const { ROWS, COLS } = this.config;
+     for (let y = 0; y < ROWS; y++) {
+       if (!this.grid[y]) this.grid[y] = [];
+       for (let x = 0; x < COLS; x++) {
+         this.grid[y][x] = data[y]?.[x] ?? this.config.TILE.EMPTY;
+       }
+     }
+   }
+
+   render(ctx, offsetX, offsetY) {
     const { COLS, ROWS, CELL_SIZE, COLORS, TILE } = this.config;
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {

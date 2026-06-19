@@ -86,9 +86,21 @@ class GameOnlinePatcher {
     const origUpdatePlaying = Game.prototype._updatePlaying;
     Game.prototype._updatePlaying = function (dt) {
       if (this.isOnlineClient) {
-        // Client: do NOT run local game simulation.
-        // Only send input, receive state, and render.
-        this.onlineUpdate(dt);
+        // Client: process local input so moveDir/bombDown are read from keyboard
+        this.inputManager.updateAll();
+        // Send input to host
+        this.sendInput();
+        // Apply remote state from host (authoritative positions, bombs, explosions, etc.)
+        if (this.remoteState) {
+          this.network.applyState(this.remoteState);
+        }
+        // Update network for pings
+        this.network.tick(dt);
+        // Update timer display (client-side countdown)
+        if (this.remoteState && this.remoteState.timeLeft != null) {
+          this.timeLeft = this.remoteState.timeLeft;
+        }
+        // Do NOT run local game simulation on client
       } else if (this.isOnlineHost) {
         // Host: run local game simulation, but apply remote input first
         this.onlineUpdate(dt);

@@ -366,6 +366,12 @@ class NetworkManager {
         if (!local) continue;
 
         if (sp.playerIndex === this.localPlayerIndex) {
+          // Local player: sync position from host (host is authoritative)
+          // but preserve local input responsiveness by only correcting drift
+          local.x = sp.x;
+          local.y = sp.y;
+          local.gridX = sp.gridX;
+          local.gridY = sp.gridY;
           local.lives = sp.lives;
           local.score = sp.score;
           local.alive = sp.alive;
@@ -375,6 +381,8 @@ class NetworkManager {
           local.fireRange = sp.fireRange;
           local.bombDuration = sp.bombDuration;
           local.maxBombs = sp.maxBombs;
+          local.bombsPlaced = sp.bombsPlaced;
+          local.speed = sp.speed;
         } else {
           local.x = sp.x;
           local.y = sp.y;
@@ -393,6 +401,11 @@ class NetworkManager {
           local.eliminated = sp.eliminated;
         }
       }
+    }
+
+    // Sync map data (destroyed blocks)
+    if (state.map && g.mapSystem) {
+      g.mapSystem.deserialize(state.map);
     }
 
     if (state.bombs) {
