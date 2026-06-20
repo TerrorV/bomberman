@@ -63,6 +63,13 @@ class NetworkManager {
 
     this.peer = new Peer('bm-' + NetworkManager.generateRoomCode(), {
       debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ],
+      },
     });
 
     return new Promise((resolve, reject) => {
@@ -111,6 +118,13 @@ class NetworkManager {
 
     this.peer = new Peer(undefined, {
       debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ],
+      },
     });
 
     return new Promise((resolve, reject) => {
