@@ -101,8 +101,8 @@ class Bomb {
 class Explosion {
   constructor(fireCells, config) {
     this.fireCells = fireCells;
-    this.timer = 0.5; // lives for 0.5s
-    this.maxTimer = 0.5;
+    this.timer = 1.0; // lives for 1.0s
+    this.maxTimer = 1.0;
     this._soundPlayed = false;
   }
 
