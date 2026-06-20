@@ -191,7 +191,7 @@ class Game {
     this.particles.update(dt);
     if (this.gameState === 'dying') {
       this.deathAnimTimer -= dt;
-      this.explosions = this.explosions.filter(e => e.update(dt));
+      this.explosions = this.explosions.filter(e => !e.update(dt));
       const { cs, cx, cy } = this._getGridOffset();
       this.explosions.forEach(e => e.render(this.ctx, cx, cy, CONFIG));
       if (this.deathAnimTimer <= 0) {
@@ -442,7 +442,7 @@ class Game {
     }
 
     // Update explosions
-    this.explosions = this.explosions.filter(exp => exp.update(dt));
+    this.explosions = this.explosions.filter(exp => !exp.update(dt));
 
     // Kill enemies hit by explosions
     this.levelSystem.killEnemiesInExplosions(this.explosions, newExplosions);
